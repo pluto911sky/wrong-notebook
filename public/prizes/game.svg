@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGame" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4F46E5"/>
+      <stop offset="50%" stop-color="#7C3AED"/>
+      <stop offset="100%" stop-color="#9333EA"/>
+    </linearGradient>
+    <linearGradient id="bodyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#0284C7"/>
+    </linearGradient>
+    <linearGradient id="rightGrip" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#F43F5E"/>
+      <stop offset="100%" stop-color="#E11D48"/>
+    </linearGradient>
+    <filter id="shadowG" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="8" stdDeviation="6" flood-color="#1E1B4B" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- Background Card -->
+  <rect width="200" height="200" rx="36" fill="url(#bgGame)"/>
+  <circle cx="100" cy="100" r="82" fill="#FFFFFF" opacity="0.08"/>
+  <circle cx="100" cy="100" r="62" fill="#FFFFFF" opacity="0.06"/>
+
+  <!-- Pixel / Neon Stars -->
+  <g fill="#FDE047">
+    <path d="M 40,35 L 43,44 L 52,47 L 43,50 L 40,59 L 37,50 L 28,47 L 37,44 Z" opacity="0.9"/>
+    <path d="M 160,45 L 162,51 L 168,53 L 162,55 L 160,61 L 158,55 L 152,53 L 158,51 Z" opacity="0.8"/>
+    <path d="M 35,145 L 37,150 L 42,152 L 37,154 L 35,159 L 33,154 L 28,152 L 33,150 Z" opacity="0.8"/>
+    <path d="M 165,135 L 167,141 L 173,143 L 167,145 L 165,151 L 163,145 L 157,143 L 163,141 Z" opacity="0.9"/>
+  </g>
+
+  <!-- Glowing Gamepad Body -->
+  <g filter="url(#shadowG)">
+    <!-- Base Shape -->
+    <rect x="36" y="70" width="128" height="76" rx="38" fill="#1E293B"/>
+    
+    <!-- Left Neon Wing (Blue) -->
+    <path d="M 74,70 C 50,70 36,86 36,108 C 36,130 50,146 74,146 L 76,70 Z" fill="url(#bodyGrad)"/>
+    
+    <!-- Right Neon Wing (Red/Pink) -->
+    <path d="M 126,70 C 150,70 164,86 164,108 C 164,130 150,146 126,146 L 124,70 Z" fill="url(#rightGrip)"/>
+    
+    <!-- Center Screen/Body Bridge -->
+    <rect x="74" y="70" width="52" height="76" fill="#0F172A"/>
+    
+    <!-- Mini screen in center -->
+    <rect x="80" y="80" width="40" height="28" rx="6" fill="#1E293B" stroke="#334155" stroke-width="2"/>
+    <!-- Heart icon on screen -->
+    <path d="M 100,98 L 96,94 C 93,91 93,87 96,85 C 99,83 100,85 100,86 C 100,85 101,83 104,85 C 107,87 107,91 104,94 Z" fill="#F43F5E"/>
+    
+    <!-- Level Bar / +30min Tag -->
+    <rect x="83" y="118" width="34" height="14" rx="7" fill="#FACC15"/>
+    <text x="100" y="129" font-size="9" font-weight="900" font-family="sans-serif" text-anchor="middle" fill="#78350F">+30分</text>
+
+    <!-- D-Pad (Left) -->
+    <g fill="#0F172A">
+      <rect x="51" y="94" width="22" height="8" rx="2"/>
+      <rect x="58" y="87" width="8" height="22" rx="2"/>
+      <!-- Inner core -->
+      <circle cx="62" cy="98" r="2.5" fill="#38BDF8"/>
+    </g>
+    <!-- Left Thumbstick -->
+    <circle cx="54" cy="126" r="9" fill="#0F172A" stroke="#38BDF8" stroke-width="2"/>
+    <circle cx="54" cy="126" r="5" fill="#0284C7"/>
+
+    <!-- Action Buttons (Right) -->
+    <!-- X Y A B buttons -->
+    <circle cx="138" cy="90" r="4.5" fill="#FDE047"/> <!-- Top Yellow -->
+    <circle cx="127" cy="100" r="4.5" fill="#38BDF8"/> <!-- Left Blue -->
+    <circle cx="149" cy="100" r="4.5" fill="#4ADE80"/> <!-- Right Green -->
+    <circle cx="138" cy="110" r="4.5" fill="#FB7185"/> <!-- Bottom Red -->
+
+    <!-- Right Thumbstick -->
+    <circle cx="146" cy="126" r="9" fill="#0F172A" stroke="#F43F5E" stroke-width="2"/>
+    <circle cx="146" cy="126" r="5" fill="#E11D48"/>
+  </g>
+
+  <!-- Top Shoulder Triggers -->
+  <rect x="48" y="64" width="24" height="6" rx="3" fill="#0284C7"/>
+  <rect x="128" y="64" width="24" height="6" rx="3" fill="#E11D48"/>
+
+  <!-- Energy sparks -->
+  <circle cx="100" cy="54" r="3" fill="#FFFFFF" opacity="0.9"/>
+  <circle cx="112" cy="58" r="2" fill="#FDE047" opacity="0.8"/>
+  <circle cx="88" cy="58" r="2" fill="#FDE047" opacity="0.8"/>
+</svg>

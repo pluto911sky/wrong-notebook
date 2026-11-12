@@ -154,19 +154,19 @@ export const DEFAULT_ANALYZE_TEMPLATE = `【角色与核心任务 (ROLE AND CORE
 </requires_image>
 
 <wrong_answer_text>
-如果图片中包含学生已经写出的错误解答、错误步骤、草稿或错误答案，请尽量按原样摘录；如果没有看到学生错误解答，请留空。
+留空即可，不需要摘录学生的错误解答原文。
 </wrong_answer_text>
 
 <mistake_status>
-填写以下值之一：wrong_attempt（图片中有错误解答或错误步骤）、not_attempted（没有错误解答，像是完全不会做或未作答）、unknown（无法判断）。
+填写 unknown 即可。
 </mistake_status>
 
 <mistake_analysis>
-如果图片中包含错误解答，请分析错误可能发生在哪一步、为什么错、导致了什么后果；如果没有错误解答，请留空。
+在此处填写【简单解析】：必须用简明扼要的一句话（不超过45字）点明这道题容易错在哪里、或者最核心的解题突破口（即使图片中没有学生手写痕迹，也必须写出这一句话的简单解析）。
 </mistake_analysis>
 
 <question_text>
-在此处填写题目的完整文本。使用 Markdown 格式。所有数学公式使用 LaTeX 符号（行内 $...$，块级 $$...$$）。
+在此处填写题目的完整文本（不要包含学生的手写草稿或错解）。使用 Markdown 格式。所有数学公式使用 LaTeX 符号（行内 $...$，块级 $$...$$）。
 
 【表格处理规则】
 如果图片中包含表格，必须完整转录表格内容，遵循以下原则：
@@ -205,7 +205,7 @@ export const DEFAULT_ANALYZE_TEMPLATE = `【角色与核心任务 (ROLE AND CORE
 </question_text>
 
 <answer_text>
-在此处填写正确答案。使用 Markdown 和 LaTeX 符号。如果答案包含表格，遵循上述【表格处理规则】。
+在此处只填写单纯、精炼的最终参考答案（不要包含推导步骤）。使用 Markdown 和 LaTeX 符号。如果答案包含表格，遵循上述【表格处理规则】。
 </answer_text>
 
 <analysis>
@@ -268,12 +268,16 @@ export const DEFAULT_SIMILAR_TEMPLATE = `你是一位资深的K12教育题目生
 在此处填写新生成的题目文本。包含选项（如果是选择题）。
 </question_text>
 
+<mistake_analysis>
+在此处填写【简单解析】：用一句话（不超过45字）点明这道变式题的解题关键或易错点。
+</mistake_analysis>
+
 <answer_text>
-在此处填写新题目的正确答案。
+在此处只填写新题目的单纯、精炼的最终参考答案（不要包含推导步骤）。
 </answer_text>
 
 <analysis>
-在此处填写新题目的详细解析。
+在此处填写新题目的详细分步解析。
 * 必须使用简体中文。
 * **直接使用标准的 LaTeX 符号**（如 $\\frac{1}{2}$），**不要**进行 JSON 转义。
 </analysis>
@@ -450,10 +454,10 @@ export function generateSimilarQuestionPrompt(
     : "Please ensure the generated question is in English.";
 
   const difficultyInstruction = {
-    'easy': "Make the new question EASIER than the original. Use simpler numbers and more direct concepts.",
-    'medium': "Keep the difficulty SIMILAR to the original question.",
-    'hard': "Make the new question HARDER than the original. Combine multiple concepts or use more complex numbers.",
-    'harder': "Make the new question MUCH HARDER (Challenge Level). Require deeper understanding and multi-step reasoning."
+    'easy': "【类似题型（中等变式）】：考查与原题完全相同的核心知识点，难度与原题基本持平，做数字与情境变换。",
+    'medium': "【类似题型（中等变式）】：考查与原题完全相同的核心知识点和题型结构，难度与原题基本持平。通过改变生活场景、替换题目数据或调整叙述方式，测试学生是否真正掌握了该题型的本质解法。",
+    'hard': "【困难变式（稍微难一些）】：在原题考点和思维框架的基础上稍微加深难度。可增加逆向思维、隐藏条件、易混淆陷阱或增加1个中间推理计算步骤，检验学生举一反三与避坑防错的思维能力。",
+    'harder': "【挑战压轴（适当难一些，奥数思维变种）】：进行适当难度的拔高拓展，结合奥数思维与高阶探究（如周期规律、分类讨论、逆推还原、容斥原理或构造法）。设计具有思维深度的压轴挑战变式题，激发数学思维潜能！"
   }[difficulty];
 
   const template = options?.customTemplate || DEFAULT_SIMILAR_TEMPLATE;

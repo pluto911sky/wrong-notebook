@@ -54,11 +54,19 @@ export async function POST(req: Request) {
 
         if (session?.user?.email) {
             try {
-                // 获取用户信息
-                const user = await prisma.user.findUnique({
-                    where: { email: session.user.email },
-                    select: { educationStage: true, enrollmentYear: true }
-                });
+                // 并行获取用户信息与错题本科目信息
+                const [user, subject] = await Promise.all([
+                    prisma.user.findUnique({
+                        where: { email: session.user.email },
+                        select: { educationStage: true, enrollmentYear: true }
+                    }),
+                    subjectId
+                        ? prisma.subject.findUnique({
+                            where: { id: subjectId },
+                            select: { name: true }
+                        })
+                        : Promise.resolve(null)
+                ]);
 
                 if (user) {
                     userGrade = calculateGradeNumber(user.educationStage, user.enrollmentYear);
@@ -68,17 +76,9 @@ export async function POST(req: Request) {
                     logger.debug({ userGrade, userGradeSemester }, 'Calculated user grade');
                 }
 
-                // 获取错题本信息以推断学科
-                if (subjectId) {
-                    const subject = await prisma.subject.findUnique({
-                        where: { id: subjectId },
-                        select: { name: true }
-                    });
-
-                    if (subject) {
-                        subjectName = inferSubjectFromName(subject.name);
-                        logger.debug({ subjectName, subjectDisplayName: subject.name }, 'Inferred subject');
-                    }
+                if (subject) {
+                    subjectName = inferSubjectFromName(subject.name);
+                    logger.debug({ subjectName, subjectDisplayName: subject.name }, 'Inferred subject');
                 }
             } catch (error) {
                 logger.error({ error }, 'Error fetching user/subject info');

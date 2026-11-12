@@ -99,6 +99,14 @@ const MIME_BY_EXT: Record<string, string> = {
 /** Validate the entire relative path, never silently repair it with basename(). */
 function imageLocation(relPath?: string | null) {
     if (typeof relPath !== 'string') return null;
+    const svgMatch = /^\/?prizes\/([A-Za-z0-9_-]+\.svg)$/.exec(relPath);
+    if (svgMatch) {
+        return {
+            absolutePath: path.join(process.cwd(), 'public', 'prizes', svgMatch[1]),
+            ext: 'svg',
+            mime: 'image/svg+xml',
+        };
+    }
     const match = /^uploads\/prizes\/([A-Za-z0-9_-]+\.(png|jpg|jpeg|webp))$/.exec(relPath);
     if (!match) return null;
     return {
@@ -118,6 +126,9 @@ export async function readPrizeImage(relPath?: string | null): Promise<{ data: B
         const stat = await file.stat();
         if (!stat.isFile() || stat.size > MAX_BYTES) return null;
         const data = await file.readFile();
+        if (location.ext === 'svg') {
+            return { data, mime: location.mime };
+        }
         const expectedType = location.ext === 'jpeg' ? 'jpg' : location.ext;
         if (data.length > MAX_BYTES || detectImageType(data) !== expectedType) return null;
         return { data, mime: location.mime };
@@ -131,7 +142,7 @@ export async function readPrizeImage(relPath?: string | null): Promise<{ data: B
 /** Low-level removal. Database-backed callers must use the reference-safe wrapper. */
 export async function deletePrizeImage(relPath?: string | null): Promise<void> {
     const location = imageLocation(relPath);
-    if (!location) return;
+    if (!location || location.ext === 'svg') return;
     try {
         await fs.unlink(location.absolutePath);
     } catch {

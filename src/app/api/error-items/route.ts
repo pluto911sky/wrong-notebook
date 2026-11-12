@@ -8,6 +8,7 @@ import { createLogger } from "@/lib/logger";
 import { findParentTagIdForGrade } from "@/lib/tag-recognition";
 import { inferSubjectFromName } from "@/lib/knowledge-tags";
 import { normalizeMistakeStatusForSave } from "@/lib/mistake-status";
+import { generateAllVariants, parseStoredVariants } from "@/lib/practice-variants-server";
 
 const logger = createLogger('api:error-items');
 
@@ -31,6 +32,7 @@ export async function POST(req: Request) {
             gradeSemester,
             paperLevel,
             geogebraCommands,
+            ocrText,
         } = body;
 
         // 记录请求参数（不记录完整图片数据）
@@ -157,6 +159,24 @@ export async function POST(req: Request) {
 
         logger.info({ tagNames, tagConnectionsCount: tagConnections.length }, 'Creating ErrorItem with tags');
 
+        // 确保上传保存时已经预生成好“举一反三”变式题（重点：困难 hard、挑战 harder、中等 medium、简单 easy）
+        let existingVariants = parseStoredVariants(ocrText);
+        if (!existingVariants.hard || !existingVariants.harder) {
+            try {
+                existingVariants = await generateAllVariants({
+                    questionText: questionText || "",
+                    knowledgePoints: tagNames,
+                    language: "zh",
+                    gradeSemester: finalGradeSemester,
+                    subjectName: subject?.name || "数学",
+                    existing: existingVariants,
+                });
+            } catch (e) {
+                logger.warn({ e }, "Pre-generation on save had a partial error");
+            }
+        }
+        const serializedVariants = Object.keys(existingVariants).length > 0 ? JSON.stringify(existingVariants) : (ocrText || null);
+
         // 创建错题记录
         try {
             const errorItem = await prisma.errorItem.create({
@@ -164,6 +184,7 @@ export async function POST(req: Request) {
                     userId: user.id,
                     subjectId: subjectId || undefined,
                     originalImageUrl,
+                    ocrText: serializedVariants,
                     questionText,
                     answerText,
                     analysis,

@@ -121,7 +121,7 @@ class FrontendLogger {
   }
 
   error(prefix: string, message: string, context?: Record<string, any>, options: LogOptions = {}) {
-    console.error(`${prefix} ${message}`, context || '');
+    console.warn(`${prefix} ${message}`, context || '');
 
     if (options.sendToBackend !== false) {
       this.addToBuffer('error', prefix, message, context);

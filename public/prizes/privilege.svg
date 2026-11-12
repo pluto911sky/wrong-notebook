@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
+  <defs>
+    <radialGradient id="pBg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#faf5ff"/>
+      <stop offset="100%" stop-color="#e9d5ff"/>
+    </radialGradient>
+    <linearGradient id="goldCrown" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a"/>
+      <stop offset="40%" stop-color="#facc15"/>
+      <stop offset="100%" stop-color="#ca8a04"/>
+    </linearGradient>
+    <filter id="pShadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="2" dy="5" stdDeviation="4" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+
+  <!-- 背景圆形 -->
+  <circle cx="100" cy="100" r="92" fill="url(#pBg)" stroke="#8b5cf6" stroke-width="4"/>
+
+  <!-- 光芒万丈射线背景 -->
+  <g opacity="0.15">
+    <polygon points="100,100 85,10 115,10" fill="#a855f7"/>
+    <polygon points="100,100 10,85 10,115" fill="#a855f7"/>
+    <polygon points="100,100 85,190 115,190" fill="#a855f7"/>
+    <polygon points="100,100 190,85 190,115" fill="#a855f7"/>
+    <polygon points="100,100 35,35 55,20" fill="#a855f7"/>
+    <polygon points="100,100 165,35 145,20" fill="#a855f7"/>
+    <polygon points="100,100 35,165 55,180" fill="#a855f7"/>
+    <polygon points="100,100 165,165 145,180" fill="#a855f7"/>
+  </g>
+
+  <!-- 闪亮五角星 -->
+  <path d="M38,55 L41,63 L49,65 L43,71 L45,79 L38,74 L31,79 L33,71 L27,65 L35,63 Z" fill="#fbbf24"/>
+  <path d="M165,65 L167,71 L173,73 L168,77 L170,83 L165,80 L160,83 L162,77 L157,73 L163,71 Z" fill="#f43f5e"/>
+
+  <!-- 魔法愿望星光权杖 (左侧插着) -->
+  <g filter="url(#pShadow)" transform="rotate(-30 80 120)">
+    <!-- 杖身 -->
+    <rect x="76" y="70" width="8" height="90" rx="4" fill="#a855f7" stroke="#7e22ce" stroke-width="1.5"/>
+    <rect x="77.5" y="72" width="2" height="86" fill="#ffffff" opacity="0.5"/>
+    <!-- 权杖顶端大金星 -->
+    <path d="M80,48 L85,60 L98,62 L88,71 L91,84 L80,77 L69,84 L72,71 L62,62 L75,60 Z" fill="#facc15" stroke="#ca8a04" stroke-width="2"/>
+    <circle cx="80" cy="67" r="5" fill="#f43f5e"/>
+  </g>
+
+  <!-- 华丽黄金国王皇冠 (主体) -->
+  <g filter="url(#pShadow)">
+    <!-- 皇冠底座绒垫 -->
+    <ellipse cx="100" cy="138" rx="46" ry="14" fill="#7e22ce"/>
+
+    <!-- 皇冠主体轮廓 -->
+    <path d="M54,138 L60,82 L78,110 L100,68 L122,110 L140,82 L146,138 Z" fill="url(#goldCrown)" stroke="#a16207" stroke-width="2"/>
+
+    <!-- 皇冠底圈镶边 -->
+    <path d="M54,138 C54,146 72,152 100,152 C128,152 146,146 146,138 L146,128 C146,136 128,142 100,142 C72,142 54,136 54,128 Z" fill="#ca8a04"/>
+
+    <!-- 五颗尖顶璀璨珍珠/红宝石 -->
+    <circle cx="60" cy="80" r="6" fill="#f43f5e" stroke="#ffffff" stroke-width="1.5"/>
+    <circle cx="100" cy="66" r="8" fill="#3b82f6" stroke="#ffffff" stroke-width="2"/>
+    <circle cx="140" cy="80" r="6" fill="#f43f5e" stroke="#ffffff" stroke-width="1.5"/>
+    <circle cx="78" cy="108" r="4.5" fill="#10b981" stroke="#ffffff" stroke-width="1"/>
+    <circle cx="122" cy="108" r="4.5" fill="#10b981" stroke="#ffffff" stroke-width="1"/>
+
+    <!-- 底边镶嵌宝石 -->
+    <ellipse cx="80" cy="138" rx="5" ry="4" fill="#ef4444"/>
+    <ellipse cx="100" cy="141" rx="6" ry="5" fill="#3b82f6"/>
+    <ellipse cx="120" cy="138" rx="5" ry="4" fill="#10b981"/>
+
+    <!-- 皇冠可爱笑脸 -->
+    <circle cx="91" cy="122" r="3" fill="#713f12"/>
+    <circle cx="109" cy="122" r="3" fill="#713f12"/>
+    <path d="M96,127 Q100,131 104,127" stroke="#713f12" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <circle cx="85" cy="126" r="3" fill="#f43f5e" opacity="0.6"/>
+    <circle cx="115" cy="126" r="3" fill="#f43f5e" opacity="0.6"/>
+  </g>
+
+  <!-- 红色特权飘带：WISH 特权 -->
+  <g filter="url(#pShadow)">
+    <path d="M65,162 L135,162 L128,178 L72,178 Z" fill="#ef4444"/>
+    <polygon points="65,162 72,178 55,178 62,170 52,162" fill="#b91c1c"/>
+    <polygon points="135,162 128,178 145,178 138,170 148,162" fill="#b91c1c"/>
+    <text x="100" y="174" font-size="11" font-weight="900" text-anchor="middle" fill="#ffffff" letter-spacing="1">特权愿望</text>
+  </g>
+</svg>

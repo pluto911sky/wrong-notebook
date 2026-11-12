@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgHug" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FB7185"/>
+      <stop offset="50%" stop-color="#F43F5E"/>
+      <stop offset="100%" stop-color="#E11D48"/>
+    </linearGradient>
+    <linearGradient id="catHugGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FDBA74"/>
+      <stop offset="50%" stop-color="#FB923C"/>
+      <stop offset="100%" stop-color="#F97316"/>
+    </linearGradient>
+    <filter id="shadowHug" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="6" stdDeviation="5" flood-color="#881337" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Background Card -->
+  <rect width="200" height="200" rx="36" fill="url(#bgHug)"/>
+  <circle cx="100" cy="100" r="82" fill="#FFFFFF" opacity="0.08"/>
+
+  <!-- Floating Hearts around -->
+  <g fill="#FFE4E6">
+    <path d="M 36,44 C 36,36 44,32 50,38 C 56,32 64,36 64,44 C 64,54 50,64 50,64 C 50,64 36,54 36,44 Z" opacity="0.9"/>
+    <path d="M 148,46 C 148,39 155,36 160,41 C 165,36 172,39 172,46 C 172,55 160,63 160,63 C 160,63 148,55 148,46 Z" opacity="0.85"/>
+    <path d="M 32,136 C 32,130 37,127 41,131 C 45,127 50,130 50,136 C 50,143 41,150 41,150 C 41,150 32,143 32,136 Z" opacity="0.8"/>
+    <path d="M 154,136 C 154,129 161,126 166,131 C 171,126 178,129 178,136 C 178,144 166,152 166,152 C 166,152 154,144 154,136 Z" opacity="0.9"/>
+  </g>
+
+  <!-- Main Hugging Cat "算算喵" -->
+  <g filter="url(#shadowHug)">
+    <!-- Cat Ears -->
+    <!-- Left Ear -->
+    <path d="M 64,68 L 50,32 C 48,27 42,29 44,35 L 56,76 Z" fill="#EA580C"/>
+    <path d="M 61,64 L 52,38 L 56,70 Z" fill="#FDA4AF"/>
+    <!-- Right Ear -->
+    <path d="M 136,68 L 150,32 C 152,27 158,29 156,35 L 144,76 Z" fill="#EA580C"/>
+    <path d="M 139,64 L 148,38 L 144,70 Z" fill="#FDA4AF"/>
+
+    <!-- Cat Body & Head Base -->
+    <ellipse cx="100" cy="142" rx="46" ry="40" fill="url(#catHugGrad)"/>
+    <ellipse cx="100" cy="95" rx="48" ry="42" fill="url(#catHugGrad)"/>
+
+    <!-- Tummy Patch -->
+    <ellipse cx="100" cy="148" rx="28" ry="24" fill="#FFEDD5"/>
+
+    <!-- Cat Forehead Tabby Stripes -->
+    <path d="M 96,62 L 100,72 L 104,62" stroke="#C2410C" stroke-width="3" stroke-linecap="round" fill="none"/>
+    <path d="M 88,66 L 93,74" stroke="#C2410C" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M 112,66 L 107,74" stroke="#C2410C" stroke-width="2.5" stroke-linecap="round"/>
+
+    <!-- Eyes (Big Happy Sparkly Eyes) -->
+    <circle cx="82" cy="94" r="7" fill="#1C1917"/>
+    <circle cx="80" cy="91" r="2.5" fill="#FFFFFF"/>
+    <circle cx="84" cy="96" r="1.2" fill="#FFFFFF"/>
+
+    <circle cx="118" cy="94" r="7" fill="#1C1917"/>
+    <circle cx="116" cy="91" r="2.5" fill="#FFFFFF"/>
+    <circle cx="120" cy="96" r="1.2" fill="#FFFFFF"/>
+
+    <!-- Cute Blush -->
+    <ellipse cx="73" cy="104" rx="7" ry="4.5" fill="#FDA4AF" opacity="0.9"/>
+    <ellipse cx="127" cy="104" rx="7" ry="4.5" fill="#FDA4AF" opacity="0.9"/>
+
+    <!-- Nose & Mouth -->
+    <polygon points="98,102 102,102 100,105" fill="#E11D48"/>
+    <path d="M 95,106 Q 100,111 100,107 Q 100,111 105,106" stroke="#9A3412" stroke-width="2" stroke-linecap="round" fill="none"/>
+
+    <!-- Whiskers -->
+    <line x1="68" y1="99" x2="52" y2="97" stroke="#EA580C" stroke-width="2" stroke-linecap="round"/>
+    <line x1="68" y1="104" x2="54" y2="108" stroke="#EA580C" stroke-width="2" stroke-linecap="round"/>
+    <line x1="132" y1="99" x2="148" y2="97" stroke="#EA580C" stroke-width="2" stroke-linecap="round"/>
+    <line x1="132" y1="104" x2="146" y2="108" stroke="#EA580C" stroke-width="2" stroke-linecap="round"/>
+
+    <!-- Big Hugging Open Paws (reaching out) -->
+    <!-- Left Paw with pink pads -->
+    <g transform="translate(42, 110)">
+      <ellipse cx="16" cy="18" rx="18" ry="14" fill="#FED7AA" stroke="#FB923C" stroke-width="2"/>
+      <!-- Main Pad -->
+      <ellipse cx="16" cy="19" rx="8" ry="6" fill="#FB7185"/>
+      <!-- Toe Pads -->
+      <circle cx="9" cy="11" r="3" fill="#FB7185"/>
+      <circle cx="16" cy="8" r="3" fill="#FB7185"/>
+      <circle cx="23" cy="11" r="3" fill="#FB7185"/>
+    </g>
+
+    <!-- Right Paw with pink pads -->
+    <g transform="translate(126, 110)">
+      <ellipse cx="16" cy="18" rx="18" ry="14" fill="#FED7AA" stroke="#FB923C" stroke-width="2"/>
+      <!-- Main Pad -->
+      <ellipse cx="16" cy="19" rx="8" ry="6" fill="#FB7185"/>
+      <!-- Toe Pads -->
+      <circle cx="9" cy="11" r="3" fill="#FB7185"/>
+      <circle cx="16" cy="8" r="3" fill="#FB7185"/>
+      <circle cx="23" cy="11" r="3" fill="#FB7185"/>
+    </g>
+
+    <!-- Glowing Heart Held in Middle -->
+    <path d="M 100,128 C 96,122 88,122 88,128 C 88,135 100,143 100,143 C 100,143 112,135 112,128 C 112,122 104,122 100,128 Z" fill="#EF4444"/>
+    <circle cx="97" cy="126" r="1.5" fill="#FFFFFF"/>
+  </g>
+
+  <!-- Big text badge: "抱抱!" -->
+  <rect x="75" y="165" width="50" height="18" rx="9" fill="#FFF1F2"/>
+  <text x="100" y="178" font-size="11" font-weight="900" font-family="sans-serif" text-anchor="middle" fill="#E11D48">暖暖拥抱</text>
+</svg>

@@ -8,9 +8,9 @@
  */
 export async function compressImage(
     file: File,
-    maxSizeMB: number = 1,
-    maxWidth: number = 1920,
-    quality: number = 0.8
+    maxSizeMB: number = 0.5,
+    maxWidth: number = 1440,
+    quality: number = 0.82
 ): Promise<string> {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -80,13 +80,13 @@ export async function compressImage(
  */
 export async function processImageFile(file: File): Promise<string> {
     const fileSizeMB = file.size / 1024 / 1024;
-    const threshold = 1; // 1MB 阈值
+    const threshold = 0.2; // 200KB 阈值，且 PNG 截图统一转为高性价比 JPEG 加速视觉模型上传与编码
 
-    console.log(`文件大小: ${fileSizeMB.toFixed(2)}MB`);
+    console.log(`文件大小: ${fileSizeMB.toFixed(2)}MB, 类型: ${file.type}`);
 
-    if (fileSizeMB > threshold) {
-        console.log('文件超过阈值，开始压缩...');
-        return await compressImage(file, threshold);
+    if (fileSizeMB > threshold || file.type === 'image/png') {
+        console.log('开始压缩并优化图片尺寸以加速 AI 识别...');
+        return await compressImage(file, 0.5, 1440, 0.82);
     } else {
         console.log('文件大小合适，无需压缩');
         // 直接返回 Base64

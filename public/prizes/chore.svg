@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgChore" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10B981"/>
+      <stop offset="50%" stop-color="#059669"/>
+      <stop offset="100%" stop-color="#047857"/>
+    </linearGradient>
+    <linearGradient id="broomGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FDE047"/>
+      <stop offset="100%" stop-color="#EAB308"/>
+    </linearGradient>
+    <filter id="shadowChore" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="6" stdDeviation="5" flood-color="#064E3B" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Background Card -->
+  <rect width="200" height="200" rx="36" fill="url(#bgChore)"/>
+  <circle cx="100" cy="100" r="82" fill="#FFFFFF" opacity="0.08"/>
+
+  <!-- Sparkling Clean / Freedom Stars -->
+  <g fill="#FEF08A">
+    <path d="M 45,35 L 48,43 L 56,46 L 48,49 L 45,57 L 42,49 L 34,46 L 42,43 Z" opacity="0.9"/>
+    <path d="M 160,40 L 162,46 L 168,48 L 162,50 L 160,56 L 158,50 L 152,48 L 158,46 Z" opacity="0.8"/>
+    <path d="M 165,130 L 167,135 L 172,137 L 167,139 L 165,144 L 163,139 L 158,137 L 163,135 Z" opacity="0.85"/>
+  </g>
+
+  <!-- Cozy Hammock / Lounge Pillows -->
+  <path d="M 28,142 Q 100,172 172,142" stroke="#6EE7B7" stroke-width="6" stroke-dasharray="8 4" fill="none" opacity="0.6"/>
+  
+  <!-- Fluffy Cloud Pillow -->
+  <ellipse cx="65" cy="120" rx="30" ry="18" fill="#F0FDF4" opacity="0.95"/>
+  <ellipse cx="52" cy="116" rx="16" ry="14" fill="#FFFFFF"/>
+  <ellipse cx="78" cy="116" rx="16" ry="14" fill="#FFFFFF"/>
+
+  <!-- Relaxed Broom Character reclining -->
+  <g filter="url(#shadowChore)" transform="rotate(-30 100 110)">
+    <!-- Wooden Handle -->
+    <rect x="94" y="22" width="12" height="88" rx="6" fill="#D97706" stroke="#92400E" stroke-width="2"/>
+    <rect x="96" y="24" width="3" height="84" rx="1.5" fill="#FDE68A" opacity="0.6"/>
+    
+    <!-- Broom Tie -->
+    <rect x="88" y="102" width="24" height="10" rx="3" fill="#DC2626"/>
+
+    <!-- Broom Bristles (Body) -->
+    <path d="M 88,110 L 72,154 C 70,160 74,166 80,166 L 120,166 C 126,166 130,160 128,154 L 112,110 Z" fill="url(#broomGrad)" stroke="#CA8A04" stroke-width="2"/>
+
+    <!-- Bristle Texture Lines -->
+    <line x1="86" y1="125" x2="82" y2="164" stroke="#CA8A04" stroke-width="2" stroke-linecap="round"/>
+    <line x1="100" y1="125" x2="100" y2="164" stroke="#CA8A04" stroke-width="2" stroke-linecap="round"/>
+    <line x1="114" y1="125" x2="118" y2="164" stroke="#CA8A04" stroke-width="2" stroke-linecap="round"/>
+
+    <!-- Cool Sunglasses on the Broom -->
+    <!-- Left Lens -->
+    <rect x="82" y="126" width="16" height="13" rx="4" fill="#0F172A"/>
+    <!-- Right Lens -->
+    <rect x="102" y="126" width="16" height="13" rx="4" fill="#0F172A"/>
+    <!-- Bridge -->
+    <rect x="96" y="129" width="8" height="3" fill="#0F172A"/>
+    <!-- Glass Reflections -->
+    <line x1="85" y1="129" x2="90" y2="134" stroke="#60A5FA" stroke-width="2" stroke-linecap="round"/>
+    <line x1="105" y1="129" x2="110" y2="134" stroke="#60A5FA" stroke-width="2" stroke-linecap="round"/>
+
+    <!-- Smug Relaxed Smile -->
+    <path d="M 94,146 Q 100,152 106,146" stroke="#854D0E" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  </g>
+
+  <!-- Relaxing Drink / Tropical Coconut on the side -->
+  <g transform="translate(136, 114)">
+    <!-- Coconut Cup -->
+    <circle cx="16" cy="18" r="14" fill="#78350F"/>
+    <ellipse cx="16" cy="8" rx="14" ry="4" fill="#FEF08A"/>
+    <!-- Straw -->
+    <path d="M 16,8 L 22,-8 L 30,-6" stroke="#EF4444" stroke-width="3" stroke-linecap="round" fill="none"/>
+    <!-- Little Umbrella -->
+    <path d="M 8,6 L 2,-10 L -4,-8" stroke="#F59E0B" stroke-width="2" fill="none"/>
+    <path d="M -8,-6 Q 2,-14 12,-10 Z" fill="#F43F5E"/>
+  </g>
+
+  <!-- "Zzz" / Relaxing floating bubbles -->
+  <g fill="#A7F3D0" opacity="0.8">
+    <circle cx="58" cy="74" r="5"/>
+    <circle cx="68" cy="62" r="7"/>
+    <circle cx="82" cy="50" r="9"/>
+  </g>
+  <text x="73" y="66" font-size="9" font-weight="900" font-family="sans-serif" fill="#065F46">休假</text>
+</svg>

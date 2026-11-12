@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
+  <defs>
+    <radialGradient id="gBg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fdf2f8"/>
+      <stop offset="100%" stop-color="#fbcfe8"/>
+    </radialGradient>
+    <linearGradient id="boxGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f43f5e"/>
+      <stop offset="100%" stop-color="#be123c"/>
+    </linearGradient>
+    <linearGradient id="ribbonGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a"/>
+      <stop offset="50%" stop-color="#facc15"/>
+      <stop offset="100%" stop-color="#ca8a04"/>
+    </linearGradient>
+    <filter id="gShadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="2" dy="5" stdDeviation="4" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+
+  <!-- 背景圆形 -->
+  <circle cx="100" cy="100" r="92" fill="url(#gBg)" stroke="#ec4899" stroke-width="4"/>
+
+  <!-- 炸开的惊喜星星彩带 -->
+  <path d="M45,35 L48,43 L56,45 L50,51 L52,59 L45,54 L38,59 L40,51 L34,45 L42,43 Z" fill="#facc15"/>
+  <path d="M152,40 L154,46 L160,47 L155,52 L157,58 L152,54 L147,58 L149,52 L144,47 L150,46 Z" fill="#38bdf8"/>
+  <circle cx="35" cy="80" r="4" fill="#a855f7"/>
+  <circle cx="165" cy="85" r="4" fill="#fb923c"/>
+  <circle cx="160" cy="125" r="3.5" fill="#f43f5e"/>
+
+  <!-- 礼盒本体 -->
+  <g filter="url(#gShadow)">
+    <!-- 礼物盒底座 -->
+    <rect x="52" y="105" width="96" height="70" rx="10" fill="url(#boxGrad)"/>
+    <rect x="52" y="105" width="96" height="68" rx="10" fill="none" stroke="#9f1239" stroke-width="2"/>
+
+    <!-- 垂直金色丝带 -->
+    <rect x="90" y="105" width="20" height="70" fill="url(#ribbonGrad)"/>
+    <line x1="100" y1="105" x2="100" y2="175" stroke="#a16207" stroke-width="1.5" stroke-dasharray="3,2"/>
+
+    <!-- 水平金色丝带 -->
+    <rect x="52" y="132" width="96" height="16" fill="url(#ribbonGrad)"/>
+    <line x1="52" y1="140" x2="148" y2="140" stroke="#a16207" stroke-width="1.5" stroke-dasharray="3,2"/>
+
+    <!-- 礼盒萌萌表情 -->
+    <circle cx="76" cy="124" r="3" fill="#ffffff"/>
+    <circle cx="124" cy="124" r="3" fill="#ffffff"/>
+    <path d="M74,124 Q76,121 78,124" stroke="#881337" stroke-width="2" fill="none"/>
+    <path d="M122,124 Q124,121 126,124" stroke="#881337" stroke-width="2" fill="none"/>
+    <circle cx="70" cy="128" r="3" fill="#fb7185"/>
+    <circle cx="130" cy="128" r="3" fill="#fb7185"/>
+
+    <!-- 稍微倾斜弹开的礼盒盖子 (带来开盒惊喜感) -->
+    <g transform="rotate(-8 100 95)">
+      <rect x="46" y="86" width="108" height="20" rx="6" fill="#fb7185" stroke="#9f1239" stroke-width="2"/>
+      <rect x="90" y="86" width="20" height="20" fill="url(#ribbonGrad)"/>
+
+      <!-- 巨大蓬松立体金色蝴蝶结 -->
+      <!-- 左蝴蝶结环 -->
+      <path d="M100,86 C82,55 50,68 68,86 C80,95 95,88 100,86 Z" fill="url(#ribbonGrad)" stroke="#a16207" stroke-width="1.5"/>
+      <path d="M96,84 C85,65 65,72 74,84 Z" fill="#eab308" opacity="0.6"/>
+      <!-- 右蝴蝶结环 -->
+      <path d="M100,86 C118,55 150,68 132,86 C120,95 105,88 100,86 Z" fill="url(#ribbonGrad)" stroke="#a16207" stroke-width="1.5"/>
+      <path d="M104,84 C115,65 135,72 126,84 Z" fill="#eab308" opacity="0.6"/>
+
+      <!-- 中心结纽扣 -->
+      <ellipse cx="100" cy="86" rx="8" ry="7" fill="#fef08a" stroke="#ca8a04" stroke-width="2"/>
+      <circle cx="98" cy="84" r="2" fill="#ffffff"/>
+
+      <!-- 垂下飘带 -->
+      <path d="M96,90 Q90,110 82,118 Q90,115 98,102 Z" fill="#ca8a04"/>
+      <path d="M104,90 Q110,110 118,118 Q110,115 102,102 Z" fill="#ca8a04"/>
+    </g>
+  </g>
+</svg>

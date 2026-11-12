@@ -75,6 +75,7 @@ export default function LotteryPage() {
 
     const [result, setResult] = useState<DrawResult | null>(null);
     const [showResult, setShowResult] = useState(false);
+    const [selectedPrize, setSelectedPrize] = useState<PrizeItem | null>(null);
     const [error, setError] = useState<string | null>(null);
 
     // 转盘布局变化时把角度归零，否则指针会指向错误的扇区
@@ -219,15 +220,26 @@ export default function LotteryPage() {
     return (
         <div className="min-h-screen bg-background">
             <div className="mx-auto max-w-3xl px-4 py-6 space-y-6">
-                <div className="flex items-center gap-3">
-                    <BackButton fallbackUrl="/" />
-                    <div>
-                        <h1 className="text-2xl font-bold flex items-center gap-2">
-                            <Gift className="h-6 w-6 text-primary" />
-                            {L.title}
-                        </h1>
-                        <p className="text-sm text-muted-foreground">{L.subtitle}</p>
+                <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                        <BackButton fallbackUrl="/" />
+                        <div>
+                            <h1 className="text-2xl font-bold flex items-center gap-2">
+                                <Gift className="h-6 w-6 text-primary" />
+                                {L.title}
+                            </h1>
+                            <p className="text-sm text-muted-foreground">{L.subtitle}</p>
+                        </div>
                     </div>
+
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.dispatchEvent(new CustomEvent("open_pet_lottery"))}
+                        className="rounded-2xl text-xs font-black border-amber-300 bg-amber-500/10 text-amber-800 dark:text-amber-200 hover:bg-amber-500/20 shadow-sm cursor-pointer"
+                    >
+                        🎒 打开算算喵心愿卡包
+                    </Button>
                 </div>
 
                 {loading ? (
@@ -292,15 +304,19 @@ export default function LotteryPage() {
                                 <h2 className="text-lg font-semibold">{L.prizeWall}</h2>
                                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                                     {prizes.map((p) => (
-                                        <Card key={p.id} className={p.soldOut ? 'opacity-55' : ''}>
+                                        <Card
+                                            key={p.id}
+                                            onClick={() => setSelectedPrize(p)}
+                                            className={`cursor-pointer hover:shadow-xl hover:border-orange-400 hover:-translate-y-1 transition-all ${p.soldOut ? 'opacity-55' : ''}`}
+                                        >
                                             <CardContent className="p-0">
-                                                <div className="aspect-square w-full overflow-hidden rounded-t-lg bg-muted flex items-center justify-center">
+                                                <div className="aspect-square w-full overflow-hidden rounded-t-lg bg-muted flex items-center justify-center p-2 bg-gradient-to-b from-amber-50 to-orange-50/30 dark:from-slate-900 dark:to-slate-800">
                                                     {p.hasImage ? (
                                                         // eslint-disable-next-line @next/next/no-img-element
                                                         <img
-                                                            src={`/api/lottery/prizes/${p.id}/image`}
+                                                            src={p.imagePath && p.imagePath.startsWith('/') ? p.imagePath : `/api/lottery/prizes/${p.id}/image`}
                                                             alt={p.name}
-                                                            className="h-full w-full object-cover"
+                                                            className="h-full w-full object-contain drop-shadow"
                                                         />
                                                     ) : (
                                                         <Package className="h-10 w-10 text-muted-foreground/50" />
@@ -336,13 +352,13 @@ export default function LotteryPage() {
                                     {records.map((r) => (
                                         <Card key={r.id}>
                                             <CardContent className="py-3 flex items-center gap-3">
-                                                <div className="h-12 w-12 shrink-0 overflow-hidden rounded-md bg-muted flex items-center justify-center">
+                                                <div className="h-12 w-12 shrink-0 overflow-hidden rounded-md bg-muted flex items-center justify-center p-1 bg-amber-50/50">
                                                     {r.imagePath ? (
                                                         // eslint-disable-next-line @next/next/no-img-element
                                                         <img
-                                                            src={`/api/lottery/records/${r.id}/image`}
+                                                            src={r.imagePath.startsWith('/') ? r.imagePath : `/api/lottery/records/${r.id}/image`}
                                                             alt={r.prizeName}
-                                                            className="h-full w-full object-cover"
+                                                            className="h-full w-full object-contain"
                                                         />
                                                     ) : (
                                                         <Gift className="h-5 w-5 text-muted-foreground/60" />
@@ -374,13 +390,13 @@ export default function LotteryPage() {
                     </DialogHeader>
 
                     <div className="flex flex-col items-center gap-3 py-2">
-                        {result?.imagePath && result.recordId && (
-                            <div className="h-40 w-40 overflow-hidden rounded-lg bg-muted">
+                        {result?.imagePath && (
+                            <div className="h-40 w-40 overflow-hidden rounded-2xl bg-amber-50/50 p-2 border-2 border-amber-300 shadow-lg">
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img
-                                    src={`/api/lottery/records/${result.recordId}/image`}
+                                    src={result.imagePath.startsWith('/') ? result.imagePath : (result.recordId ? `/api/lottery/records/${result.recordId}/image` : result.imagePath)}
                                     alt={result.name}
-                                    className="h-full w-full object-cover"
+                                    className="h-full w-full object-contain"
                                 />
                             </div>
                         )}
@@ -403,6 +419,54 @@ export default function LotteryPage() {
                             {L.close}
                         </Button>
                     </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* 奖品大图特权详情弹窗 */}
+            <Dialog open={!!selectedPrize} onOpenChange={(o) => { if (!o) setSelectedPrize(null); }}>
+                <DialogContent className="max-w-md sm:rounded-3xl p-6 text-center space-y-4 border-2 border-amber-300 shadow-2xl bg-gradient-to-b from-amber-50/70 via-background to-background">
+                    {selectedPrize && (
+                        <>
+                            <div className="relative mx-auto w-40 h-40 rounded-3xl overflow-hidden shadow-2xl border-4 border-amber-300 bg-gradient-to-tr from-amber-100 via-orange-50 to-white dark:from-slate-800 dark:to-slate-700 p-3 flex items-center justify-center">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                    src={selectedPrize.imagePath && selectedPrize.imagePath.startsWith('/') ? selectedPrize.imagePath : `/api/lottery/prizes/${selectedPrize.id}/image`}
+                                    alt={selectedPrize.name}
+                                    className="w-full h-full object-contain drop-shadow"
+                                />
+                            </div>
+
+                            <div className="space-y-1">
+                                <h3 className="text-xl font-black text-foreground">
+                                    {selectedPrize.name}
+                                </h3>
+                                {selectedPrize.description && (
+                                    <div className="p-3 rounded-2xl bg-orange-500/10 border border-orange-300/50 text-xs font-bold text-orange-950 dark:text-orange-200 leading-relaxed text-left">
+                                        🎁 <strong>特权说明</strong>：{selectedPrize.description}
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="flex gap-2 pt-1">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setSelectedPrize(null)}
+                                    className="flex-1 text-xs h-9 rounded-2xl cursor-pointer"
+                                >
+                                    关闭
+                                </Button>
+                                <Button
+                                    onClick={() => {
+                                        setSelectedPrize(null);
+                                        window.dispatchEvent(new CustomEvent("open_pet_lottery"));
+                                    }}
+                                    className="flex-1 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs h-9 rounded-2xl cursor-pointer"
+                                >
+                                    查看我的卡包 🎒
+                                </Button>
+                            </div>
+                        </>
+                    )}
                 </DialogContent>
             </Dialog>
         </div>

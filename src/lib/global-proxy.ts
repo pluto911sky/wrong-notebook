@@ -1,9 +1,17 @@
-import { ProxyAgent, setGlobalDispatcher } from 'undici';
+import { Agent, ProxyAgent, setGlobalDispatcher } from 'undici';
+import dns from 'node:dns';
 import { createLogger } from './logger';
 
 const logger = createLogger('proxy');
 
 export function setupGlobalProxy() {
+    // 优先使用 IPv4，避免在 Fake-IP / TUN 模式下因 IPv6 AAAA 记录不可达导致请求卡死超时
+    try {
+        dns.setDefaultResultOrder('ipv4first');
+    } catch {
+        // ignore
+    }
+
     const httpProxy = process.env.http_proxy || process.env.HTTP_PROXY;
     const httpsProxy = process.env.https_proxy || process.env.HTTPS_PROXY;
     const allProxy = process.env.all_proxy || process.env.ALL_PROXY;
@@ -56,6 +64,20 @@ export function setupGlobalProxy() {
             }
         } catch (error) {
             logger.error({ error }, 'Failed to initialize global-agent');
+        }
+    } else {
+        // 未配置显式代理（例如使用系统 TUN 透明代理）时，缩短空闲连接复用时间，防止复用被 TUN 回收的死连接导致 AbortError
+        try {
+            const directAgent = new Agent({
+                keepAliveTimeout: 1000,
+                keepAliveMaxTimeout: 2000,
+                connect: {
+                    timeout: 10000,
+                },
+            });
+            setGlobalDispatcher(directAgent);
+        } catch (error) {
+            logger.error({ error }, 'Failed to set direct Undici Agent');
         }
     }
 }

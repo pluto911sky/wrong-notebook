@@ -71,11 +71,11 @@ export const config = {
          * - api             接口自行鉴权
          * - _next/static    构建产物
          * - _next/image     图片优化
-         * - favicon.ico / icons / manifest.webmanifest / robots.txt
+         * - favicon.ico / icons / prizes / manifest.webmanifest / robots.txt
          *   这些是浏览器/爬虫直接取用的静态资源，之前 manifest 被拦截会导致
          *   PWA 安装信息获取失败，且每次页面加载都产生一条无意义的
          *   「Redirecting unauthenticated user to login」日志。
          */
-        "/((?!api|_next/static|_next/image|favicon\\.ico|icons/|manifest\\.webmanifest|robots\\.txt).*)",
+        "/((?!api|_next/static|_next/image|favicon\\.ico|icons/|prizes/|manifest\\.webmanifest|robots\\.txt).*)",
     ],
 };

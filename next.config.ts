@@ -29,6 +29,7 @@ const devOrigins = [hostnameOf(process.env.NEXTAUTH_URL)].filter(
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  devIndicators: false,
   serverExternalPackages: ['@prisma/client', 'bcryptjs'],
   // 允许经隧道域名访问 dev 资源；留空时行为与原先一致（仅 localhost）
   ...(devOrigins.length > 0 ? { allowedDevOrigins: devOrigins } : {}),
@@ -49,6 +50,18 @@ const nextConfig: NextConfig = {
    * 正确做法：文档类响应不缓存（必须每次拿最新 HTML，才能拿到新的
    * chunk 地址）；/_next/static/* 属于内容哈希文件名，可安全长缓存。
    */
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve = config.resolve || {};
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        path: false,
+        child_process: false,
+      };
+    }
+    return config;
+  },
   async headers() {
     return [
       {

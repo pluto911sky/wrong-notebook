@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { UploadZone } from "@/components/upload-zone";
 import { CorrectionEditor } from "@/components/correction-editor";
+import { BatchReviewEditor, BatchQuestionItem } from "@/components/batch-review-editor";
 import { ImageCropper } from "@/components/image-cropper";
 import { ParsedQuestion } from "@/lib/ai";
 import { apiClient } from "@/lib/api-client";
@@ -12,7 +13,7 @@ import { AnalyzeResponse, Notebook, RuntimeConfig } from "@/types/api";
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { processImageFile } from "@/lib/image-utils";
-import { ArrowLeft, Upload, PenLine } from "lucide-react";
+import { ArrowLeft, Upload, PenLine, Layers } from "lucide-react";
 import { ProgressFeedback, ProgressStatus } from "@/components/ui/progress-feedback";
 import { frontendLogger } from "@/lib/frontend-logger";
 import { TextInputZone } from "@/components/text-input-zone";
@@ -21,10 +22,14 @@ export default function AddErrorPage() {
     const params = useParams();
     const router = useRouter();
     const notebookId = params.id as string;
-    const [step, setStep] = useState<"upload" | "review">("upload");
+    const [step, setStep] = useState<"upload" | "review" | "batch-review">("upload");
     const [analysisStep, setAnalysisStep] = useState<ProgressStatus>('idle');
     const [progress, setProgress] = useState(0);
+    const [progressMessage, setProgressMessage] = useState("");
     const [parsedData, setParsedData] = useState<ParsedQuestion | null>(null);
+    const [batchQuestions, setBatchQuestions] = useState<BatchQuestionItem[]>([]);
+    const [isBatchSaving, setIsBatchSaving] = useState(false);
+    const [savingProgress, setSavingProgress] = useState<{ current: number; total: number; message: string }>({ current: 0, total: 0, message: "" });
     const [currentImage, setCurrentImage] = useState<string | null>(null);
     const { t, language } = useLanguage();
     const [notebook, setNotebook] = useState<Notebook | null>(null);
@@ -59,7 +64,6 @@ export default function AddErrorPage() {
                 router.push("/notebooks");
             });
 
-        // Fetch only non-secret runtime settings; full AI settings are admin-only.
         apiClient.get<RuntimeConfig>("/api/runtime-config")
             .then(data => {
                 setConfig(data);
@@ -71,31 +75,6 @@ export default function AddErrorPage() {
             })
             .catch(err => console.error("Failed to fetch config:", err));
     }, [notebookId, router]);
-
-    // Simulate progress for smoother UX with timeout protection
-    useEffect(() => {
-        let interval: NodeJS.Timeout;
-        let timeout: NodeJS.Timeout;
-        if (analysisStep !== 'idle') {
-            setProgress(0);
-            interval = setInterval(() => {
-                setProgress(prev => {
-                    if (prev >= 90) return prev;
-                    return prev + Math.random() * 10;
-                });
-            }, 500);
-
-            // Safety timeout: auto-reset after configurable time to prevent stuck overlay
-            timeout = setTimeout(() => {
-                console.warn('[Progress] Safety timeout triggered - resetting analysisStep');
-                setAnalysisStep('idle');
-            }, safetyTimeout);
-        }
-        return () => {
-            clearInterval(interval);
-            clearTimeout(timeout);
-        };
-    }, [analysisStep, safetyTimeout]);
 
     const onImageSelect = (file: File) => {
         const imageUrl = URL.createObjectURL(file);
@@ -109,230 +88,224 @@ export default function AddErrorPage() {
         handleAnalyze(file);
     };
 
+    // 单张图片分析流程
     const handleAnalyze = async (file: File) => {
         const startTime = Date.now();
-        frontendLogger.info('[AddAnalyze]', 'Starting analysis flow', {
-            timeoutSettings: {
-                apiTimeout: aiTimeout,
-                safetyTimeout
-            }
-        });
+        frontendLogger.info('[AddAnalyze]', 'Starting single image analysis');
 
         try {
-            frontendLogger.info('[AddAnalyze]', 'Step 1/5: Compressing image');
             setAnalysisStep('compressing');
+            setProgressMessage("正在优化与压缩图片...");
             const base64Image = await processImageFile(file);
             setCurrentImage(base64Image);
-            frontendLogger.info('[AddAnalyze]', 'Image compressed successfully', {
-                size: base64Image.length
-            });
 
-            frontendLogger.info('[AddAnalyze]', 'Step 2/5: Calling API endpoint /api/analyze');
             setAnalysisStep('analyzing');
-            const apiStartTime = Date.now();
+            setProgressMessage("AI 正在深度分析题目与考点...");
             const data = await apiClient.post<AnalyzeResponse>("/api/analyze", {
                 imageBase64: base64Image,
                 language: language,
                 subjectId: notebookId
-            }, { timeout: aiTimeout }); // Use configured timeout
-            const apiDuration = Date.now() - apiStartTime;
-            frontendLogger.info('[AddAnalyze]', 'API response received, validating data', {
-                apiDuration
-            });
-
-            // Validate response data
-            if (!data || typeof data !== 'object') {
-                frontendLogger.error('[AddAnalyze]', 'Validation failed - invalid response data', {
-                    data
-                });
-                throw new Error('Invalid API response: data is null or not an object');
-            }
-            frontendLogger.info('[AddAnalyze]', 'Response data validated successfully');
-
-            frontendLogger.info('[AddAnalyze]', 'Step 3/5: Setting processing state and progress to 100%');
-            setAnalysisStep('processing');
-            setProgress(100);
-            frontendLogger.info('[AddAnalyze]', 'Progress updated to 100%');
-
-            frontendLogger.info('[AddAnalyze]', 'Step 4/5: Setting parsed data into state');
-            const dataSize = JSON.stringify(data).length;
-            const setDataStart = Date.now();
-            setParsedData(data);
-            const setDataDuration = Date.now() - setDataStart;
-            frontendLogger.info('[AddAnalyze]', 'Parsed data set successfully', {
-                dataSize,
-                setDataDuration
-            });
-
-            frontendLogger.info('[AddAnalyze]', 'Step 5/5: Switching to review page');
-            const setStepStart = Date.now();
-            setStep("review");
-            const setStepDuration = Date.now() - setStepStart;
-            frontendLogger.info('[AddAnalyze]', 'Step switched to review', {
-                setStepDuration
-            });
-            const totalDuration = Date.now() - startTime;
-            frontendLogger.info('[AddAnalyze]', 'Analysis completed successfully', {
-                totalDuration
-            });
-        } catch (error: any) {
-            const errorDuration = Date.now() - startTime;
-            frontendLogger.error('[AddError]', 'Analysis failed', {
-                errorDuration,
-                error: error.message || String(error)
-            });
-
-            // 安全的错误处理逻辑，防止在报错时二次报错
-            try {
-                // 解析详细错误信息
-                let errorMessage = t.common.messages?.analysisFailed || 'Analysis failed';
-
-                // ApiError 的结构：error.data.message 包含后端返回的错误类型
-                const backendErrorType = error?.data?.message;
-
-                if (backendErrorType && typeof backendErrorType === 'string') {
-                    // 检查是否是已知的 AI 错误类型
-                    // 使用安全访问
-                    if (t.errors && typeof t.errors === 'object' && backendErrorType in t.errors) {
-                        const mappedError = (t.errors as any)[backendErrorType];
-                        if (typeof mappedError === 'string') {
-                            errorMessage = mappedError;
-                            frontendLogger.info('[AddError]', `Matched error type: ${backendErrorType}`, {
-                                errorMessage
-                            });
-                        }
-                    } else {
-                        // 使用后端返回的具体错误消息
-                        errorMessage = backendErrorType;
-                        frontendLogger.info('[AddError]', 'Using backend error message', {
-                            errorMessage
-                        });
-                    }
-                } else if (error?.message) {
-                    // Fallback：检查 error.message（用于非 API 错误）
-                    if (error.message.includes('fetch') || error.message.includes('network')) {
-                        errorMessage = t.errors?.AI_CONNECTION_FAILED || '网络连接失败';
-                    } else if (typeof error.data === 'string') {
-                        // 如果 data 是字符串（例如 HTML 错误页），可能包含提示
-                        frontendLogger.info('[AddError]', 'Raw error data', {
-                            errorDataPreview: error.data.substring(0, 100)
-                        });
-                        errorMessage += ` (${error.status || 'Error'})`;
-                    }
-                }
-
-                alert(errorMessage);
-            } catch (innerError) {
-                frontendLogger.error('[AddError]', 'Failed to process error message', {
-                    innerError: String(innerError)
-                });
-                // 确保至少弹出一个提示
-                alert('Analysis failed. Please try again.');
-            }
-        } finally {
-            // Always reset analysis state, even if setState throws
-            frontendLogger.info('[AddAnalyze]', 'Finally: Resetting analysis state to idle');
-            setAnalysisStep('idle');
-            frontendLogger.info('[AddAnalyze]', 'Analysis state reset complete');
-        }
-    };
-
-    const handleTextSubmit = async (questionText: string) => {
-        const startTime = Date.now();
-        frontendLogger.info('[AddTextSubmit]', 'Starting text-based analysis', { textLength: questionText.length });
-
-        try {
-            setAnalysisStep('analyzing');
-
-            const result = await apiClient.post<{
-                answerText: string;
-                analysis: string;
-                knowledgePoints: string[];
-                wrongAnswerText: string;
-                mistakeAnalysis: string;
-                mistakeStatus: string;
-            }>("/api/reanswer", {
-                questionText,
-                language,
-                subject: notebook?.name || undefined,
             }, { timeout: aiTimeout });
 
-            setAnalysisStep('processing');
-            setProgress(100);
-
-            const parsed: ParsedQuestion = {
-                questionText,
-                answerText: result.answerText,
-                analysis: result.analysis,
-                knowledgePoints: result.knowledgePoints || [],
-                wrongAnswerText: result.wrongAnswerText || "",
-                mistakeAnalysis: result.mistakeAnalysis || "",
-                mistakeStatus: (result.mistakeStatus as any) || "unknown",
-                subject: "数学",
-                requiresImage: false,
-            };
-
-            setCurrentImage(null);
-            setParsedData(parsed);
-            setStep("review");
-
-            const totalDuration = Date.now() - startTime;
-            frontendLogger.info('[AddTextSubmit]', 'Text analysis completed', { totalDuration });
-        } catch (error: any) {
-            const errorDuration = Date.now() - startTime;
-            frontendLogger.error('[AddTextSubmit]', 'Analysis failed', {
-                errorDuration,
-                error: error.message || String(error)
-            });
-
-            try {
-                let errorMessage = t.common.messages?.analysisFailed || 'Analysis failed';
-                const backendErrorType = error?.data?.message;
-                if (backendErrorType && typeof backendErrorType === 'string') {
-                    if (t.errors && typeof t.errors === 'object' && backendErrorType in t.errors) {
-                        const mappedError = (t.errors as any)[backendErrorType];
-                        if (typeof mappedError === 'string') errorMessage = mappedError;
-                    } else {
-                        errorMessage = backendErrorType;
-                    }
-                }
-                alert(errorMessage);
-            } catch {
-                alert('Analysis failed. Please try again.');
+            if (!data || typeof data !== 'object') {
+                throw new Error('Invalid API response');
             }
+
+            setParsedData(data);
+            setStep("review");
+        } catch (error: any) {
+            console.error('Analysis failed:', error);
+            alert(error?.data?.message || error?.message || '分析失败，请重试');
         } finally {
             setAnalysisStep('idle');
         }
     };
 
+    // 多张图片批量分析流程
+    const handleBatchImagesSelect = async (files: File[]) => {
+        if (!files || files.length === 0) return;
+        if (files.length === 1) {
+            onImageSelect(files[0]);
+            return;
+        }
+
+        frontendLogger.info('[AddBatchAnalyze]', 'Starting batch images analysis', { count: files.length });
+        setAnalysisStep('analyzing');
+        const results: BatchQuestionItem[] = [];
+
+        try {
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                setProgressMessage(`正在批量识别第 ${i + 1} / ${files.length} 张错题图片...`);
+                setProgress(Math.round(((i + 0.3) / files.length) * 100));
+
+                try {
+                    const base64Image = await processImageFile(file);
+                    const data = await apiClient.post<AnalyzeResponse>("/api/analyze", {
+                        imageBase64: base64Image,
+                        language: language,
+                        subjectId: notebookId
+                    }, { timeout: aiTimeout });
+
+                    if (data && typeof data === 'object') {
+                        results.push({
+                            id: `img-${Date.now()}-${i}`,
+                            questionText: data.questionText || "未识别到题干",
+                            answerText: data.answerText || "",
+                            analysis: data.analysis || "",
+                            knowledgePoints: Array.isArray(data.knowledgePoints) ? data.knowledgePoints : ["综合题"],
+                            wrongAnswerText: data.wrongAnswerText || "",
+                            mistakeAnalysis: data.mistakeAnalysis || "",
+                            originalImageUrl: base64Image,
+                            selected: true,
+                        });
+                    }
+                } catch (singleErr) {
+                    console.warn(`第 ${i + 1} 张图片分析出错，跳过继续处理剩余图片:`, singleErr);
+                }
+                setProgress(Math.round(((i + 1) / files.length) * 100));
+            }
+
+            if (results.length === 0) {
+                alert("未成功识别出题目，请检查图片是否清晰！");
+                return;
+            }
+
+            setBatchQuestions(results);
+            setStep("batch-review");
+        } catch (error: any) {
+            console.error('Batch analysis error:', error);
+            alert('批量识别出现问题，请重试！');
+        } finally {
+            setAnalysisStep('idle');
+        }
+    };
+
+    // 手动文本输入（支持单道题或多道题批量粘贴）
+    const handleTextSubmit = async (questionText: string) => {
+        frontendLogger.info('[AddTextSubmit]', 'Starting text analysis (batch aware)');
+        setAnalysisStep('analyzing');
+        setProgressMessage("AI 正在智能识别并解答题目（支持多题自动拆分）...");
+
+        try {
+            const result = await apiClient.post<{
+                success: boolean;
+                count: number;
+                questions: Array<{
+                    questionText: string;
+                    answerText: string;
+                    analysis: string;
+                    knowledgePoints: string[];
+                    wrongAnswerText?: string;
+                    mistakeAnalysis?: string;
+                    mistakeStatus?: string;
+                }>;
+            }>("/api/batch-text-analyze", {
+                text: questionText,
+                subjectId: notebookId,
+                language,
+            }, { timeout: aiTimeout });
+
+            const questions = result?.questions || [];
+
+            if (questions.length > 1) {
+                // 多道题模式：进入批量核对编辑器
+                const formatted: BatchQuestionItem[] = questions.map((q, idx) => ({
+                    id: `text-${Date.now()}-${idx}`,
+                    questionText: q.questionText,
+                    answerText: q.answerText,
+                    analysis: q.analysis,
+                    knowledgePoints: q.knowledgePoints || ["综合题"],
+                    wrongAnswerText: q.wrongAnswerText || "",
+                    mistakeAnalysis: q.mistakeAnalysis || "",
+                    originalImageUrl: null,
+                    selected: true,
+                }));
+
+                setBatchQuestions(formatted);
+                setStep("batch-review");
+            } else if (questions.length === 1) {
+                // 单道题模式：进入单题编辑器
+                const q = questions[0];
+                const parsed: ParsedQuestion = {
+                    questionText: q.questionText,
+                    answerText: q.answerText,
+                    analysis: q.analysis,
+                    knowledgePoints: q.knowledgePoints || [],
+                    wrongAnswerText: q.wrongAnswerText || "",
+                    mistakeAnalysis: q.mistakeAnalysis || "",
+                    mistakeStatus: (q.mistakeStatus as any) || "unknown",
+                    subject: (notebook?.name as any) || "数学",
+                    requiresImage: false,
+                };
+                setCurrentImage(null);
+                setParsedData(parsed);
+                setStep("review");
+            } else {
+                throw new Error("未能解析出题目内容");
+            }
+        } catch (error: any) {
+            console.error('Text analysis error:', error);
+            alert(error?.data?.message || error?.message || '解题分析失败，请重试');
+        } finally {
+            setAnalysisStep('idle');
+        }
+    };
+
+    // 单题保存逻辑
     const handleSave = async (finalData: ParsedQuestion & { subjectId?: string; gradeSemester?: string; paperLevel?: string }): Promise<void> => {
         try {
-            const result = await apiClient.post<{ id: string; duplicate?: boolean }>("/api/error-items", {
+            await apiClient.post<{ id: string; duplicate?: boolean }>("/api/error-items", {
                 ...finalData,
                 originalImageUrl: currentImage || "",
                 subjectId: notebookId,
             });
 
-            // 检查是否是重复提交（后端去重返回）
-            if (result.duplicate) {
-                frontendLogger.info('[AddSave]', 'Duplicate submission detected, using existing record');
-            }
-
-            alert(t.common.messages?.saveSuccess || 'Saved!');
+            alert(t.common.messages?.saveSuccess || '错题保存成功！已自动预生成所有难度的举一反三变式题！');
             router.push(`/notebooks/${notebookId}`);
         } catch (error) {
             console.error(error);
-            alert(t.common.messages?.saveFailed || 'Save failed');
+            alert(t.common.messages?.saveFailed || '保存失败，请重试');
         }
     };
 
-    const getProgressMessage = () => {
-        switch (analysisStep) {
-            case 'compressing': return t.common.progress?.compressing || "Compressing...";
-            case 'uploading': return t.common.progress?.uploading || "Uploading...";
-            case 'analyzing': return t.common.progress?.analyzing || "Analyzing...";
-            case 'processing': return t.common.progress?.processing || "Processing...";
-            default: return "";
+    // 多题批量保存逻辑
+    const handleBatchSaveAll = async (toSave: BatchQuestionItem[]): Promise<void> => {
+        if (!toSave || toSave.length === 0) return;
+        setIsBatchSaving(true);
+        let savedCount = 0;
+
+        try {
+            for (let i = 0; i < toSave.length; i++) {
+                const item = toSave[i];
+                setSavingProgress({
+                    current: i + 1,
+                    total: toSave.length,
+                    message: `正在保存第 ${i + 1} / ${toSave.length} 道错题...`,
+                });
+
+                await apiClient.post<{ id: string }>("/api/error-items", {
+                    questionText: item.questionText,
+                    answerText: item.answerText,
+                    analysis: item.analysis,
+                    knowledgePoints: item.knowledgePoints,
+                    wrongAnswerText: item.wrongAnswerText || "",
+                    mistakeAnalysis: item.mistakeAnalysis || "",
+                    mistakeStatus: "wrong",
+                    originalImageUrl: item.originalImageUrl || "",
+                    subjectId: notebookId,
+                });
+                savedCount++;
+            }
+
+            alert(`🎉 恭喜！已成功批量录入 ${savedCount} 道错题！\n所有题目已自动生成好举一反三变式题，算算喵也获得了大量经验！`);
+            router.push(`/notebooks/${notebookId}`);
+        } catch (error: any) {
+            console.error("Batch save error:", error);
+            alert(`部分题目保存出错，已成功保存 ${savedCount} 道题。`);
+            router.push(`/notebooks/${notebookId}`);
+        } finally {
+            setIsBatchSaving(false);
         }
     };
 
@@ -349,51 +322,66 @@ export default function AddErrorPage() {
             <ProgressFeedback
                 status={analysisStep}
                 progress={progress}
-                message={getProgressMessage()}
+                message={progressMessage || "正在处理中..."}
             />
 
-            <div className="container mx-auto p-4 space-y-8 pb-20 max-w-5xl md:px-6 md:py-8">
-                {/* Header Section */}
-                <div className="flex items-center gap-4">
-                    <Link href={`/notebooks/${notebookId}`}>
-                        <Button variant="ghost" size="icon">
-                            <ArrowLeft className="h-5 w-5 md:h-6 md:w-6" />
-                        </Button>
-                    </Link>
-                    <h1 className="text-2xl font-bold">{t.app.addError}</h1>
+            <div className="container mx-auto p-4 space-y-6 pb-20 max-w-5xl md:px-6 md:py-8">
+                {/* 页面顶栏 */}
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <Link href={`/notebooks/${notebookId}`}>
+                            <Button variant="ghost" size="icon" className="rounded-2xl">
+                                <ArrowLeft className="h-5 w-5" />
+                            </Button>
+                        </Link>
+                        <div>
+                            <h1 className="text-2xl font-black flex items-center gap-2">
+                                <span>录入错题</span>
+                                <span className="text-sm font-normal text-muted-foreground">
+                                    ({notebook.name})
+                                </span>
+                            </h1>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                                支持单题/多题批量录入：直接粘贴多题或多选多张图片，AI 自动解答
+                            </p>
+                        </div>
+                    </div>
                 </div>
 
-                {/* Main Content */}
+                {/* 模式 1：上传或输入 */}
                 {step === "upload" && (
                     <div className="space-y-4">
-                        {/* Input mode tabs */}
                         <div className="flex gap-2 border-b">
                             <button
-                                className={`flex min-h-11 items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+                                className={`flex min-h-11 items-center gap-2 px-5 py-2.5 text-sm font-bold border-b-2 transition-colors cursor-pointer ${
                                     inputMode === "image"
-                                        ? "border-primary text-primary"
+                                        ? "border-orange-500 text-orange-600 dark:text-orange-400"
                                         : "border-transparent text-muted-foreground hover:text-foreground"
                                 }`}
                                 onClick={() => setInputMode("image")}
                             >
-                                <Upload className="h-4 w-4 md:h-6 md:w-6" />
-                                {t.app?.uploadImage || "拍照上传"}
+                                <Upload className="h-4 w-4" />
+                                <span>拍照 / 图片上传 (支持多图)</span>
                             </button>
                             <button
-                                className={`flex min-h-11 items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+                                className={`flex min-h-11 items-center gap-2 px-5 py-2.5 text-sm font-bold border-b-2 transition-colors cursor-pointer ${
                                     inputMode === "text"
-                                        ? "border-primary text-primary"
+                                        ? "border-orange-500 text-orange-600 dark:text-orange-400"
                                         : "border-transparent text-muted-foreground hover:text-foreground"
                                 }`}
                                 onClick={() => setInputMode("text")}
                             >
-                                <PenLine className="h-4 w-4 md:h-6 md:w-6" />
-                                {t.app?.manualInput || "手动输入"}
+                                <PenLine className="h-4 w-4" />
+                                <span>手动输入 (支持粘贴多道题)</span>
                             </button>
                         </div>
 
                         {inputMode === "image" ? (
-                            <UploadZone onImageSelect={onImageSelect} isAnalyzing={analysisStep !== 'idle'} />
+                            <UploadZone
+                                onImageSelect={onImageSelect}
+                                onBatchImagesSelect={handleBatchImagesSelect}
+                                isAnalyzing={analysisStep !== 'idle'}
+                            />
                         ) : (
                             <TextInputZone
                                 onSubmit={handleTextSubmit}
@@ -404,6 +392,7 @@ export default function AddErrorPage() {
                     </div>
                 )}
 
+                {/* 模式 2：单题核对模式 */}
                 {step === "review" && parsedData && (
                     <CorrectionEditor
                         initialData={parsedData}
@@ -412,6 +401,19 @@ export default function AddErrorPage() {
                         onCancel={() => setStep("upload")}
                         initialSubjectId={notebookId}
                         aiTimeout={aiTimeout}
+                    />
+                )}
+
+                {/* 模式 3：多题批量核对模式 */}
+                {step === "batch-review" && (
+                    <BatchReviewEditor
+                        questions={batchQuestions}
+                        subjectId={notebookId}
+                        notebookName={notebook.name}
+                        onSaveAll={handleBatchSaveAll}
+                        onCancel={() => setStep("upload")}
+                        isSaving={isBatchSaving}
+                        savingProgress={savingProgress}
                     />
                 )}
             </div>

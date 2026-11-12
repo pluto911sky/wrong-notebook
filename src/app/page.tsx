@@ -22,12 +22,17 @@ import { ProgressFeedback, ProgressStatus } from "@/components/ui/progress-feedb
 import { frontendLogger } from "@/lib/frontend-logger";
 import { TextInputZone } from "@/components/text-input-zone";
 import { DirectTextEditor } from "@/components/direct-text-editor";
+import { BatchReviewEditor, BatchQuestionItem } from "@/components/batch-review-editor";
 
 function HomeContent() {
-    const [step, setStep] = useState<"upload" | "review">("upload");
+    const [step, setStep] = useState<"upload" | "review" | "batch-review">("upload");
     const [analysisStep, setAnalysisStep] = useState<ProgressStatus>('idle');
     const [progress, setProgress] = useState(0);
+    const [progressMessage, setProgressMessage] = useState("");
     const [parsedData, setParsedData] = useState<ParsedQuestion | null>(null);
+    const [batchQuestions, setBatchQuestions] = useState<BatchQuestionItem[]>([]);
+    const [isBatchSaving, setIsBatchSaving] = useState(false);
+    const [savingProgress, setSavingProgress] = useState<{ current: number; total: number; message: string }>({ current: 0, total: 0, message: "" });
     const [currentImage, setCurrentImage] = useState<string | null>(null);
     const { t, language } = useLanguage();
     const searchParams = useSearchParams();
@@ -293,50 +298,134 @@ function HomeContent() {
         }
     };
 
+    // 多图批量分析
+    const handleBatchImagesSelect = async (files: File[]) => {
+        if (!files || files.length === 0) return;
+        if (files.length === 1) {
+            onImageSelect(files[0]);
+            return;
+        }
+
+        frontendLogger.info('[HomeBatchAnalyze]', 'Starting batch images analysis', { count: files.length });
+        setAnalysisStep('analyzing');
+        const results: BatchQuestionItem[] = [];
+
+        try {
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                setProgressMessage(`正在批量识别第 ${i + 1} / ${files.length} 张图片...`);
+                setProgress(Math.round(((i + 0.3) / files.length) * 100));
+
+                try {
+                    const base64Image = await processImageFile(file);
+                    const targetNotebookId = initialNotebookId || autoSelectedNotebookId || undefined;
+                    const data = await apiClient.post<AnalyzeResponse>("/api/analyze", {
+                        imageBase64: base64Image,
+                        language: language,
+                        subjectId: targetNotebookId,
+                    }, { timeout: aiTimeout });
+
+                    if (data && typeof data === 'object') {
+                        results.push({
+                            id: `img-${Date.now()}-${i}`,
+                            questionText: data.questionText || "未识别到题干",
+                            answerText: data.answerText || "",
+                            analysis: data.analysis || "",
+                            knowledgePoints: Array.isArray(data.knowledgePoints) ? data.knowledgePoints : ["综合题"],
+                            wrongAnswerText: data.wrongAnswerText || "",
+                            mistakeAnalysis: data.mistakeAnalysis || "",
+                            originalImageUrl: base64Image,
+                            selected: true,
+                        });
+                    }
+                } catch (singleErr) {
+                    console.warn(`第 ${i + 1} 张图片分析失败，跳过:`, singleErr);
+                }
+                setProgress(Math.round(((i + 1) / files.length) * 100));
+            }
+
+            if (results.length === 0) {
+                alert("未成功识别出题目，请检查图片清晰度！");
+                return;
+            }
+
+            setBatchQuestions(results);
+            setStep("batch-review");
+        } catch (error: any) {
+            console.error('Batch analysis error:', error);
+            alert('批量识别出现问题，请重试！');
+        } finally {
+            setAnalysisStep('idle');
+        }
+    };
+
     const handleTextSubmit = async (questionText: string) => {
         const startTime = Date.now();
-        frontendLogger.info('[HomeTextSubmit]', 'Starting text-based analysis', { textLength: questionText.length });
+        frontendLogger.info('[HomeTextSubmit]', 'Starting text-based analysis (batch aware)', { textLength: questionText.length });
 
         try {
             setAnalysisStep('analyzing');
+            setProgressMessage("AI 正在智能识别并解答多道题...");
 
-            // Infer subject from auto-selected notebook
             const targetNotebookId = initialNotebookId || autoSelectedNotebookId;
-            const matchedNotebook = targetNotebookId
-                ? notebooks.find(n => n.id === targetNotebookId)
-                : undefined;
 
             const result = await apiClient.post<{
-                answerText: string;
-                analysis: string;
-                knowledgePoints: string[];
-                wrongAnswerText: string;
-                mistakeAnalysis: string;
-                mistakeStatus: string;
-            }>("/api/reanswer", {
-                questionText,
+                success: boolean;
+                count: number;
+                questions: Array<{
+                    questionText: string;
+                    answerText: string;
+                    analysis: string;
+                    knowledgePoints: string[];
+                    wrongAnswerText?: string;
+                    mistakeAnalysis?: string;
+                    mistakeStatus?: string;
+                }>;
+            }>("/api/batch-text-analyze", {
+                text: questionText,
+                subjectId: targetNotebookId || undefined,
                 language,
-                subject: matchedNotebook?.name || undefined,
             }, { timeout: aiTimeout });
 
-            setAnalysisStep('processing');
-            setProgress(100);
+            const questions = result?.questions || [];
 
-            const parsed: ParsedQuestion = {
-                questionText,
-                answerText: result.answerText,
-                analysis: result.analysis,
-                knowledgePoints: result.knowledgePoints || [],
-                wrongAnswerText: result.wrongAnswerText || "",
-                mistakeAnalysis: result.mistakeAnalysis || "",
-                mistakeStatus: (result.mistakeStatus as any) || "unknown",
-                subject: "数学", // Default, will be overridden by notebook selection
-                requiresImage: false,
-            };
+            if (questions.length > 1) {
+                // 多题进入批量核对编辑器
+                const formatted: BatchQuestionItem[] = questions.map((q, idx) => ({
+                    id: `text-${Date.now()}-${idx}`,
+                    questionText: q.questionText,
+                    answerText: q.answerText,
+                    analysis: q.analysis,
+                    knowledgePoints: q.knowledgePoints || ["综合题"],
+                    wrongAnswerText: q.wrongAnswerText || "",
+                    mistakeAnalysis: q.mistakeAnalysis || "",
+                    originalImageUrl: null,
+                    selected: true,
+                }));
 
-            setCurrentImage(null); // No image for text input
-            setParsedData(parsed);
-            setStep("review");
+                setBatchQuestions(formatted);
+                setStep("batch-review");
+            } else if (questions.length === 1) {
+                // 单题进入单题核对
+                const q = questions[0];
+                const parsed: ParsedQuestion = {
+                    questionText: q.questionText,
+                    answerText: q.answerText,
+                    analysis: q.analysis,
+                    knowledgePoints: q.knowledgePoints || [],
+                    wrongAnswerText: q.wrongAnswerText || "",
+                    mistakeAnalysis: q.mistakeAnalysis || "",
+                    mistakeStatus: (q.mistakeStatus as any) || "unknown",
+                    subject: "数学",
+                    requiresImage: false,
+                };
+
+                setCurrentImage(null);
+                setParsedData(parsed);
+                setStep("review");
+            } else {
+                throw new Error("未能识别出题目");
+            }
 
             const totalDuration = Date.now() - startTime;
             frontendLogger.info('[HomeTextSubmit]', 'Text analysis completed', { totalDuration });
@@ -346,24 +435,53 @@ function HomeContent() {
                 errorDuration,
                 error: error.message || String(error)
             });
-
-            try {
-                let errorMessage = t.common?.messages?.analysisFailed || 'Analysis failed, please try again';
-                const backendErrorType = error?.data?.message;
-                if (backendErrorType && typeof backendErrorType === 'string') {
-                    if (t.errors && typeof t.errors === 'object' && backendErrorType in t.errors) {
-                        const mappedError = (t.errors as any)[backendErrorType];
-                        if (typeof mappedError === 'string') errorMessage = mappedError;
-                    } else {
-                        errorMessage = backendErrorType;
-                    }
-                }
-                alert(errorMessage);
-            } catch {
-                alert('Analysis failed. Please try again.');
-            }
+            alert('解题分析失败，请重试！');
         } finally {
             setAnalysisStep('idle');
+        }
+    };
+
+    // 首页批量保存逻辑
+    const handleBatchSaveAll = async (toSave: BatchQuestionItem[]): Promise<void> => {
+        if (!toSave || toSave.length === 0) return;
+        setIsBatchSaving(true);
+        let savedCount = 0;
+        const targetNotebookId = initialNotebookId || autoSelectedNotebookId || notebooks[0]?.id;
+
+        try {
+            for (let i = 0; i < toSave.length; i++) {
+                const item = toSave[i];
+                setSavingProgress({
+                    current: i + 1,
+                    total: toSave.length,
+                    message: `正在保存第 ${i + 1} / ${toSave.length} 道错题...`,
+                });
+
+                await apiClient.post<{ id: string }>("/api/error-items", {
+                    questionText: item.questionText,
+                    answerText: item.answerText,
+                    analysis: item.analysis,
+                    knowledgePoints: item.knowledgePoints,
+                    wrongAnswerText: item.wrongAnswerText || "",
+                    mistakeAnalysis: item.mistakeAnalysis || "",
+                    mistakeStatus: "wrong",
+                    originalImageUrl: item.originalImageUrl || "",
+                    subjectId: targetNotebookId,
+                });
+                savedCount++;
+            }
+
+            alert(`🎉 恭喜！已成功批量录入 ${savedCount} 道错题！\n系统已自动预生成所有难度的举一反三变式题！`);
+            setStep("upload");
+            if (targetNotebookId) {
+                router.push(`/notebooks/${targetNotebookId}`);
+            }
+        } catch (error: any) {
+            console.error("Home batch save error:", error);
+            alert(`部分题目保存出错，已保存 ${savedCount} 道错题。`);
+            setStep("upload");
+        } finally {
+            setIsBatchSaving(false);
         }
     };
 
@@ -438,7 +556,7 @@ function HomeContent() {
             <ProgressFeedback
                 status={analysisStep}
                 progress={progress}
-                message={getProgressMessage()}
+                message={progressMessage || getProgressMessage()}
             />
 
             <div className="container mx-auto p-4 space-y-8 pb-20 max-w-5xl md:px-6 md:py-8">
@@ -572,7 +690,11 @@ function HomeContent() {
                         </div>
 
                         {inputMode === "image" ? (
-                            <UploadZone onImageSelect={onImageSelect} isAnalyzing={analysisStep !== 'idle'} />
+                            <UploadZone
+                                onImageSelect={onImageSelect}
+                                onBatchImagesSelect={handleBatchImagesSelect}
+                                isAnalyzing={analysisStep !== 'idle'}
+                            />
                         ) : inputMode === "text" ? (
                             <TextInputZone
                                 onSubmit={handleTextSubmit}
@@ -615,6 +737,17 @@ function HomeContent() {
                         imagePreview={currentImage}
                         initialSubjectId={initialNotebookId || autoSelectedNotebookId || undefined}
                         aiTimeout={aiTimeout}
+                    />
+                )}
+
+                {step === "batch-review" && (
+                    <BatchReviewEditor
+                        questions={batchQuestions}
+                        subjectId={initialNotebookId || autoSelectedNotebookId || undefined}
+                        onSaveAll={handleBatchSaveAll}
+                        onCancel={() => setStep("upload")}
+                        isSaving={isBatchSaving}
+                        savingProgress={savingProgress}
                     />
                 )}
 

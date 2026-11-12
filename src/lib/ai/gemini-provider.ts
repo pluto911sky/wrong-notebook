@@ -31,9 +31,10 @@ export class GeminiProvider implements AIService {
         // 参考：@google/genai 的 GoogleGenAIOptions.httpOptions.baseUrl
         this.ai = new GoogleGenAI({
             apiKey,
-            httpOptions: baseUrl ? {
-                baseUrl: baseUrl
-            } : undefined
+            httpOptions: {
+                ...(baseUrl ? { baseUrl } : {}),
+                timeout: 20000,
+            }
         });
 
         this.modelName = config?.model || 'gemini-2.0-flash';
@@ -60,6 +61,8 @@ export class GeminiProvider implements AIService {
                 // Identify retryable errors
                 const isRetryable =
                     msg.includes('fetch failed') ||
+                    msg.includes('aborted') ||
+                    msg.includes('aborterror') ||
                     msg.includes('network') ||
                     msg.includes('connect') ||
                     msg.includes('503') ||
@@ -161,12 +164,21 @@ export class GeminiProvider implements AIService {
     async analyzeImage(imageBase64: string, mimeType: string = "image/jpeg", language: 'zh' | 'en' = 'zh', grade?: 7 | 8 | 9 | 10 | 11 | 12 | null, subject?: string | null, gradeSemester?: string | null): Promise<ParsedQuestion> {
         const config = getAppConfig();
 
-        // 从数据库获取各学科标签
-        const prefetchedMathTags = (subject === '数学' || !subject) ? await getMathTagsFromDB(grade || null) : [];
-        const prefetchedPhysicsTags = (subject === '物理' || !subject) ? await getTagsFromDB('physics') : [];
-        const prefetchedChemistryTags = (subject === '化学' || !subject) ? await getTagsFromDB('chemistry') : [];
-        const prefetchedBiologyTags = (subject === '生物' || !subject) ? await getTagsFromDB('biology') : [];
-        const prefetchedEnglishTags = (subject === '英语' || !subject) ? await getTagsFromDB('english') : [];
+        // 仅在初高中阶段（grade != null）且需要对应学科时并行查询预置大纲标签；小学阶段直接由 AI 提取精炼知识点，避免塞入上千个初高中标签拖慢速度
+        const shouldFetchSyllabusTags = grade !== null && grade !== undefined;
+        const [
+            prefetchedMathTags,
+            prefetchedPhysicsTags,
+            prefetchedChemistryTags,
+            prefetchedBiologyTags,
+            prefetchedEnglishTags,
+        ] = shouldFetchSyllabusTags ? await Promise.all([
+            (subject === '数学' || !subject) ? getMathTagsFromDB(grade) : Promise.resolve([]),
+            (subject === '物理' || !subject) ? getTagsFromDB('physics') : Promise.resolve([]),
+            (subject === '化学' || !subject) ? getTagsFromDB('chemistry') : Promise.resolve([]),
+            (subject === '生物' || !subject) ? getTagsFromDB('biology') : Promise.resolve([]),
+            (subject === '英语' || !subject) ? getTagsFromDB('english') : Promise.resolve([]),
+        ]) : [[], [], [], [], []];
 
         const prompt = generateAnalyzePrompt(language, grade, subject, {
             customTemplate: config.prompts?.analyze,
@@ -209,6 +221,11 @@ export class GeminiProvider implements AIService {
 
             const response = await this.retryOperation(() => this.ai.models.generateContent({
                 model: this.modelName,
+                config: {
+                    thinkingConfig: {
+                        thinkingBudget: 0,
+                    },
+                },
                 contents: [
                     {
                         text: prompt
@@ -266,6 +283,11 @@ export class GeminiProvider implements AIService {
         try {
             const response = await this.retryOperation(() => this.ai.models.generateContent({
                 model: this.modelName,
+                config: {
+                    thinkingConfig: {
+                        thinkingBudget: 0,
+                    },
+                },
                 contents: prompt
             }));
 
@@ -319,6 +341,11 @@ export class GeminiProvider implements AIService {
 
             const response = await this.retryOperation(() => this.ai.models.generateContent({
                 model: this.modelName,
+                config: {
+                    thinkingConfig: {
+                        thinkingBudget: 0,
+                    },
+                },
                 contents
             }));
 
@@ -363,6 +390,11 @@ export class GeminiProvider implements AIService {
         try {
             const response = await this.retryOperation(() => this.ai.models.generateContent({
                 model: this.modelName,
+                config: {
+                    thinkingConfig: {
+                        thinkingBudget: 0,
+                    },
+                },
                 contents: prompt
             }));
 

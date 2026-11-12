@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { BootDiagnostics } from "@/components/boot-diagnostics";
+import { PetWidget } from "@/components/digital-pet/pet-widget";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -132,6 +133,7 @@ export default function RootLayout({
         <BootDiagnostics />
         <Providers>
           {children}
+          <PetWidget />
         </Providers>
       </body>
     </html>

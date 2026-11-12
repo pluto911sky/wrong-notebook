@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
+  <defs>
+    <radialGradient id="feastBg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fffbeb"/>
+      <stop offset="100%" stop-color="#fed7aa"/>
+    </radialGradient>
+    <linearGradient id="burgerBun" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+    <filter id="fShadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="2" dy="5" stdDeviation="4" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+
+  <!-- 背景圆形 -->
+  <circle cx="100" cy="100" r="92" fill="url(#feastBg)" stroke="#f59e0b" stroke-width="4"/>
+
+  <!-- 薯条杯 (左后方) -->
+  <g filter="url(#fShadow)">
+    <!-- 薯条盒子 -->
+    <path d="M35,95 L45,155 C46,158 49,160 52,160 L80,160 C83,160 86,158 87,155 L95,95 Z" fill="#ef4444"/>
+    <ellipse cx="65" cy="95" rx="30" ry="7" fill="#dc2626"/>
+    <!-- 薯条金色小标志 -->
+    <circle cx="65" cy="128" r="10" fill="#fbbf24"/>
+    <text x="65" y="132" font-size="12" font-weight="900" text-anchor="middle" fill="#dc2626">★</text>
+
+    <!-- 金黄色脆薯条 -->
+    <rect x="42" y="65" width="8" height="40" rx="3" fill="#fde047" stroke="#eab308" stroke-width="1.5" transform="rotate(-15 46 85)"/>
+    <rect x="52" y="55" width="8" height="50" rx="3" fill="#fde047" stroke="#eab308" stroke-width="1.5" transform="rotate(-6 56 80)"/>
+    <rect x="62" y="50" width="8" height="55" rx="3" fill="#fde047" stroke="#eab308" stroke-width="1.5"/>
+    <rect x="72" y="58" width="8" height="48" rx="3" fill="#fde047" stroke="#eab308" stroke-width="1.5" transform="rotate(8 76 82)"/>
+    <rect x="80" y="68" width="8" height="38" rx="3" fill="#fde047" stroke="#eab308" stroke-width="1.5" transform="rotate(18 84 87)"/>
+  </g>
+
+  <!-- 可乐/冷饮杯 (右后方) -->
+  <g filter="url(#fShadow)">
+    <!-- 杯身 -->
+    <path d="M135,80 L142,150 C143,153 145,155 148,155 L168,155 C171,155 173,153 174,150 L180,80 Z" fill="#3b82f6"/>
+    <path d="M137,92 L143,148 L170,148 L177,92 Z" fill="#2563eb"/>
+    <ellipse cx="158" cy="80" rx="22" ry="6" fill="#e2e8f0"/>
+    <!-- 弯头红白吸管 -->
+    <path d="M158,80 L166,48 L178,42" stroke="#ef4444" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M158,80 L166,48 L178,42" stroke="#ffffff" stroke-width="5" stroke-dasharray="6,6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- 豪华双层大汉堡 (中心主体) -->
+  <g filter="url(#fShadow)">
+    <!-- 底层面包 -->
+    <path d="M60,158 C60,168 75,172 105,172 C135,172 150,168 150,158 Z" fill="url(#burgerBun)"/>
+
+    <!-- 底层多汁牛肉饼 -->
+    <rect x="58" y="148" width="94" height="12" rx="6" fill="#78350f"/>
+
+    <!-- 芝士片 (金黄色三角形垂落) -->
+    <polygon points="56,148 154,148 142,156 128,148 100,160 85,148 70,155" fill="#f59e0b"/>
+
+    <!-- 翠绿波浪生菜叶 -->
+    <path d="M54,142 Q62,148 70,142 Q78,136 86,142 Q94,148 102,142 Q110,136 118,142 Q126,148 134,142 Q142,136 150,142 Q156,146 156,142 L54,142 Z" fill="#22c55e"/>
+
+    <!-- 鲜红番茄切片 -->
+    <rect x="62" y="134" width="40" height="8" rx="4" fill="#ef4444"/>
+    <rect x="108" y="134" width="40" height="8" rx="4" fill="#ef4444"/>
+
+    <!-- 顶层蓬松面包胚 -->
+    <path d="M55,134 C55,95 80,90 105,90 C130,90 155,95 155,134 Z" fill="url(#burgerBun)"/>
+
+    <!-- 萌萌大眼睛笑脸 -->
+    <circle cx="92" cy="118" r="4" fill="#451a03"/>
+    <circle cx="118" cy="118" r="4" fill="#451a03"/>
+    <circle cx="93.5" cy="116.5" r="1.5" fill="#ffffff"/>
+    <circle cx="119.5" cy="116.5" r="1.5" fill="#ffffff"/>
+    <path d="M100,123 Q105,128 110,123" stroke="#451a03" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <circle cx="85" cy="123" r="4" fill="#f43f5e" opacity="0.6"/>
+    <circle cx="125" cy="123" r="4" fill="#f43f5e" opacity="0.6"/>
+
+    <!-- 白芝麻颗粒 -->
+    <ellipse cx="80" cy="102" rx="2.5" ry="1.5" fill="#fef08a" transform="rotate(-20 80 102)"/>
+    <ellipse cx="98" cy="97" rx="2.5" ry="1.5" fill="#fef08a"/>
+    <ellipse cx="118" cy="100" rx="2.5" ry="1.5" fill="#fef08a" transform="rotate(25 118 100)"/>
+    <ellipse cx="132" cy="106" rx="2.5" ry="1.5" fill="#fef08a" transform="rotate(40 132 106)"/>
+    <ellipse cx="105" cy="106" rx="2.5" ry="1.5" fill="#fef08a" transform="rotate(-10 105 106)"/>
+  </g>
+</svg>

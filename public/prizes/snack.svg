@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fff1f2"/>
+      <stop offset="100%" stop-color="#fed7aa"/>
+    </radialGradient>
+    <linearGradient id="iceCream" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fda4af"/>
+      <stop offset="50%" stop-color="#f43f5e"/>
+      <stop offset="100%" stop-color="#fb923c"/>
+    </linearGradient>
+    <linearGradient id="cone" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fcd34d"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="2" dy="5" stdDeviation="4" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+
+  <!-- 背景圆形 -->
+  <circle cx="100" cy="100" r="92" fill="url(#bg)" stroke="#fb923c" stroke-width="4"/>
+
+  <!-- 闪闪发光的小星星装饰 -->
+  <path d="M45,35 L47,40 L52,42 L47,44 L45,49 L43,44 L38,42 L43,40 Z" fill="#f59e0b"/>
+  <path d="M155,50 L157,55 L162,57 L157,59 L155,64 L153,59 L148,57 L153,55 Z" fill="#ec4899"/>
+  <path d="M30,120 L32,124 L36,126 L32,128 L30,132 L28,128 L24,126 L28,124 Z" fill="#fbbf24"/>
+
+  <!-- 珍珠奶茶杯 (左侧) -->
+  <g filter="url(#shadow)">
+    <!-- 杯身 -->
+    <path d="M40,110 L52,165 C53,169 57,172 61,172 L79,172 C83,172 87,169 88,165 L100,110 Z" fill="#fef08a"/>
+    <!-- 奶茶液体 -->
+    <path d="M43,122 L53,164 C54,167 57,170 61,170 L79,170 C83,170 86,167 87,164 L97,122 Z" fill="#fed7aa"/>
+    <!-- 黑糖珍珠 -->
+    <circle cx="60" cy="160" r="5" fill="#78350f"/>
+    <circle cx="72" cy="162" r="5.5" fill="#78350f"/>
+    <circle cx="80" cy="158" r="4.8" fill="#78350f"/>
+    <circle cx="66" cy="151" r="5.2" fill="#78350f"/>
+    <circle cx="75" cy="148" r="5" fill="#78350f"/>
+    <!-- 杯盖 -->
+    <ellipse cx="70" cy="110" rx="30" ry="7" fill="#fb923c"/>
+    <ellipse cx="70" cy="108" rx="26" ry="5" fill="#fdba74"/>
+    <!-- 吸管 -->
+    <line x1="72" y1="110" x2="84" y2="80" stroke="#f43f5e" stroke-width="6" stroke-linecap="round"/>
+    <!-- 奶茶可爱小表情 -->
+    <circle cx="63" cy="132" r="2.5" fill="#78350f"/>
+    <circle cx="77" cy="132" r="2.5" fill="#78350f"/>
+    <path d="M68,136 Q70,139 72,136" stroke="#78350f" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+    <circle cx="59" cy="135" r="2.5" fill="#fca5a5" opacity="0.6"/>
+    <circle cx="81" cy="135" r="2.5" fill="#fca5a5" opacity="0.6"/>
+  </g>
+
+  <!-- 巨无霸甜筒冰淇淋 (主体) -->
+  <g filter="url(#shadow)">
+    <!-- 华夫蛋筒 -->
+    <polygon points="125,182 100,105 150,105" fill="url(#cone)"/>
+    <!-- 蛋筒网格花纹 -->
+    <line x1="108" y1="115" x2="140" y2="155" stroke="#b45309" stroke-width="1.5" opacity="0.4"/>
+    <line x1="116" y1="130" x2="135" y2="170" stroke="#b45309" stroke-width="1.5" opacity="0.4"/>
+    <line x1="142" y1="115" x2="110" y2="155" stroke="#b45309" stroke-width="1.5" opacity="0.4"/>
+    <line x1="134" y1="130" x2="115" y2="170" stroke="#b45309" stroke-width="1.5" opacity="0.4"/>
+
+    <!-- 冰淇淋底层波浪 -->
+    <ellipse cx="125" cy="105" rx="28" ry="12" fill="#fb7185"/>
+    <circle cx="103" cy="104" r="8" fill="#fb7185"/>
+    <circle cx="125" cy="106" r="9" fill="#fb7185"/>
+    <circle cx="147" cy="104" r="8" fill="#fb7185"/>
+
+    <!-- 冰淇淋中层与旋转螺旋顶 -->
+    <path d="M103,100 C98,80 115,70 125,72 C135,70 152,80 147,100 Z" fill="url(#iceCream)"/>
+    <path d="M112,78 C110,60 120,50 125,50 C130,50 140,60 138,78 Z" fill="#f43f5e"/>
+    <path d="M120,55 C122,42 128,40 125,35 C122,40 120,45 118,55 Z" fill="#fda4af"/>
+
+    <!-- 顶部红樱桃 -->
+    <circle cx="125" cy="35" r="9" fill="#e11d48"/>
+    <circle cx="122" cy="32" r="2.5" fill="#ffffff" opacity="0.8"/>
+    <path d="M125,27 Q135,16 132,12" stroke="#15803d" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+
+    <!-- 彩色糖针 -->
+    <line x1="116" y1="85" x2="122" y2="87" stroke="#3b82f6" stroke-width="3" stroke-linecap="round"/>
+    <line x1="132" y1="82" x2="138" y2="85" stroke="#eab308" stroke-width="3" stroke-linecap="round"/>
+    <line x1="124" y1="70" x2="128" y2="75" stroke="#22c55e" stroke-width="3" stroke-linecap="round"/>
+    <line x1="112" y1="95" x2="117" y2="98" stroke="#a855f7" stroke-width="3" stroke-linecap="round"/>
+
+    <!-- 冰淇淋萌萌笑脸 -->
+    <circle cx="118" cy="90" r="3" fill="#881337"/>
+    <circle cx="132" cy="90" r="3" fill="#881337"/>
+    <circle cx="119" cy="88" r="1" fill="#ffffff"/>
+    <circle cx="133" cy="88" r="1" fill="#ffffff"/>
+    <path d="M122,94 Q125,98 128,94" stroke="#881337" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <circle cx="114" cy="94" r="3" fill="#f43f5e" opacity="0.5"/>
+    <circle cx="136" cy="94" r="3" fill="#f43f5e" opacity="0.5"/>
+  </g>
+
+  <!-- 巧克力曲奇饼干 (右下角) -->
+  <g filter="url(#shadow)">
+    <circle cx="160" cy="155" r="20" fill="#d97706"/>
+    <circle cx="160" cy="155" r="18" fill="#f59e0b"/>
+    <!-- 巧克力豆 -->
+    <circle cx="152" cy="148" r="3.5" fill="#451a03"/>
+    <circle cx="168" cy="150" r="3" fill="#451a03"/>
+    <circle cx="158" cy="162" r="3.8" fill="#451a03"/>
+    <circle cx="168" cy="164" r="3" fill="#451a03"/>
+    <circle cx="148" cy="160" r="2.8" fill="#451a03"/>
+  </g>
+</svg>
