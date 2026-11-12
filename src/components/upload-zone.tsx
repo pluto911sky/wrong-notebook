@@ -5,7 +5,8 @@ import { useDropzone, type FileRejection } from "react-dropzone";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { UploadCloud, Loader2, Monitor, Plus, Sparkles, Image as ImageIcon } from "lucide-react";
+import { UploadCloud, Loader2, Monitor, Plus, Sparkles, Image as ImageIcon, Crop, CopyPlus, Undo2 } from "lucide-react";
+import { ImageCropper } from "@/components/image-cropper";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { toast } from "@/components/ui/toast";
 
@@ -117,6 +118,55 @@ export function UploadZone({ onImageSelect, onBatchImagesSelect, isAnalyzing }: 
             addFiles(files);
         }
         e.target.value = "";
+    };
+
+    /*
+     * 多图队列里的框选：
+     * - 框选：用框出的部分替换这张图（总是从原图框，便于重新框）；
+     * - 再框一题：从同一张原图再框一块，作为新的一张插到后面（一张照片里有多道错题时用）；
+     * - 恢复原图：撤销框选。
+     * originalOf 记录「框选结果 → 原图」，File 对象作 key，删除后自然失效。
+     */
+    const originalOf = useRef(new Map<File, File>());
+    const [cropTarget, setCropTarget] = useState<{ index: number; mode: "replace" | "add"; url: string; source: File } | null>(null);
+
+    const openCrop = (index: number, mode: "replace" | "add") => {
+        const file = selectedFiles[index];
+        if (!file || isAnalyzing) return;
+        const source = originalOf.current.get(file) ?? file;
+        setCropTarget({ index, mode, source, url: URL.createObjectURL(source) });
+    };
+
+    const closeCrop = () => {
+        setCropTarget((current) => {
+            if (current) URL.revokeObjectURL(current.url);
+            return null;
+        });
+    };
+
+    const handleCropDone = (blob: Blob) => {
+        if (!cropTarget) return;
+        const { index, mode, source } = cropTarget;
+        const base = source.name.replace(/\.[^.]+$/, "");
+        const cropped = new File([blob], `${base}-框选${Date.now() % 10000}.jpg`, { type: "image/jpeg", lastModified: Date.now() });
+        originalOf.current.set(cropped, source);
+        setSelectedFiles((prev) => {
+            const next = [...prev];
+            if (mode === "replace") next[index] = cropped;
+            else next.splice(index + 1, 0, cropped);
+            return next.slice(0, MAX_FILES);
+        });
+        closeCrop();
+    };
+
+    const restoreOriginal = (index: number) => {
+        setSelectedFiles((prev) => {
+            const original = originalOf.current.get(prev[index]);
+            if (!original) return prev;
+            const next = [...prev];
+            next[index] = original;
+            return next;
+        });
     };
 
     const removeFile = (index: number) => {
@@ -332,18 +382,26 @@ export function UploadZone({ onImageSelect, onBatchImagesSelect, isAnalyzing }: 
                                                 className="relative group rounded-2xl overflow-hidden border-2 bg-white dark:bg-slate-800 shadow-sm aspect-square flex items-center justify-center p-1.5"
                                             >
                                                 {url ? (
-                                                    // eslint-disable-next-line @next/next/no-img-element
-                                                    <img
-                                                        src={url}
-                                                        alt={file.name}
-                                                        className="w-full h-full object-contain rounded-xl"
-                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openCrop(idx, "replace")}
+                                                        disabled={isAnalyzing}
+                                                        aria-label={`框选 ${file.name}`}
+                                                        className="w-full h-full cursor-crosshair"
+                                                    >
+                                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                        <img
+                                                            src={url}
+                                                            alt={file.name}
+                                                            className="w-full h-full object-contain rounded-xl"
+                                                        />
+                                                    </button>
                                                 ) : (
                                                     <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                                                 )}
 
                                                 <span className="absolute top-1 left-1 bg-black/60 text-white text-[10px] font-bold px-1.5 py-0.2 rounded-md">
-                                                    #{idx + 1}
+                                                    #{idx + 1}{originalOf.current.has(file) ? " · 已框选" : ""}
                                                 </span>
 
                                                 <button
@@ -355,8 +413,39 @@ export function UploadZone({ onImageSelect, onBatchImagesSelect, isAnalyzing }: 
                                                     ✕
                                                 </button>
 
-                                                <div className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[9px] px-1.5 py-0.5 truncate text-center">
-                                                    {file.name}
+                                                {/* 框选操作：触屏上也常显，不依赖 hover */}
+                                                <div className="absolute bottom-0 inset-x-0 flex items-center justify-center gap-1 bg-black/60 px-1 py-1">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openCrop(idx, "replace")}
+                                                        disabled={isAnalyzing}
+                                                        title="框选这张图里要识别的部分"
+                                                        className="flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-semibold text-white hover:bg-white/20"
+                                                    >
+                                                        <Crop className="h-3 w-3" />框选
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openCrop(idx, "add")}
+                                                        disabled={isAnalyzing || selectedFiles.length >= MAX_FILES}
+                                                        title="从这张原图再框出一道题，作为新的一张"
+                                                        aria-label="从这张图再框一题"
+                                                        className="flex items-center rounded px-1.5 py-0.5 text-white hover:bg-white/20 disabled:opacity-40"
+                                                    >
+                                                        <CopyPlus className="h-3 w-3" />
+                                                    </button>
+                                                    {originalOf.current.has(file) && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => restoreOriginal(idx)}
+                                                            disabled={isAnalyzing}
+                                                            title="恢复原图"
+                                                            aria-label="恢复原图"
+                                                            className="flex items-center rounded px-1.5 py-0.5 text-white hover:bg-white/20"
+                                                        >
+                                                            <Undo2 className="h-3 w-3" />
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </div>
                                         );
@@ -404,7 +493,7 @@ export function UploadZone({ onImageSelect, onBatchImagesSelect, isAnalyzing }: 
                                         点击选择或拖拽图片到这里（支持一次上传多张）
                                     </h3>
                                     <p className="text-xs text-muted-foreground">
-                                        支持同时选择多张错题照片或试卷截图，AI 将逐一智能识别考点并生成解答
+                                        支持同时选择多张错题照片或试卷截图；加入后点缩略图即可框选要识别的部分
                                     </p>
                                     <p className="text-[11px] text-amber-600 dark:text-amber-400 font-bold pt-1">
                                         提示：可用 Ctrl+V / Cmd+V 直接粘贴截图，也可按住 Shift / Cmd 多选图片
@@ -415,6 +504,15 @@ export function UploadZone({ onImageSelect, onBatchImagesSelect, isAnalyzing }: 
                     </CardContent>
                 </Card>
             </div>
+
+            {cropTarget && (
+                <ImageCropper
+                    imageSrc={cropTarget.url}
+                    open
+                    onClose={closeCrop}
+                    onCropComplete={handleCropDone}
+                />
+            )}
 
             {/* 屏幕截图按钮 */}
             {isScreenshotSupported() && (
