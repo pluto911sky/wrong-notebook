@@ -60,7 +60,7 @@ export function PracticeStats() {
                 setLoading(false);
             })
             .catch(err => {
-                console.error("Failed to fetch stats:", err);
+                console.warn("Failed to fetch stats:", err);
                 setLoading(false);
             });
     }, []);

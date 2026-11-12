@@ -57,7 +57,7 @@ export function TagInput({ value = [], onChange, placeholder = "Enter tags...", 
             setShowSuggestions(filtered.length > 0);
             setSelectedIndex(0);
         } catch (error) {
-            console.error("Failed to fetch suggestions:", error);
+            console.warn("Failed to fetch suggestions:", error);
         }
     };
 

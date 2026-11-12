@@ -40,7 +40,7 @@ function PrintPreviewContent() {
             setItems(response.items);
             setSelectedIds(new Set(response.items.map((item) => item.id)));
         } catch (error) {
-            console.error(error);
+            console.warn(error);
         } finally {
             setLoading(false);
         }

@@ -285,11 +285,11 @@ export function GeogebraDemo({
                 // deployggb.js auto-resolves the codebase — do NOT call setHTML5Codebase
                 applet.inject(id);
             } catch (e) {
-                console.error("[GGB] Init failed:", e);
+                console.warn("[GGB] Init failed:", e);
                 if (!dead) { setError("GeoGebra 初始化失败"); setLoading(false); }
             }
         }).catch((e) => {
-            console.error("[GGB] Script load failed:", e);
+            console.warn("[GGB] Script load failed:", e);
             if (!dead) { setError("无法加载 GeoGebra 组件"); setLoading(false); }
         });
 

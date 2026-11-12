@@ -30,7 +30,7 @@ export function NotebookSelector({ value, onChange, className }: NotebookSelecto
                 const data = await apiClient.get<Notebook[]>("/api/notebooks");
                 setNotebooks(data);
             } catch (error) {
-                console.error("Failed to fetch notebooks:", error);
+                console.warn("Failed to fetch notebooks:", error);
             } finally {
                 setLoading(false);
             }

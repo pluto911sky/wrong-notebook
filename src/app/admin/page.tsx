@@ -336,7 +336,7 @@ export default function AdminPage() {
             const result = await apiClient.get<AdminDashboardData>("/api/admin/dashboard")
             setData(result)
         } catch (error) {
-            console.error("Failed to fetch dashboard data", error)
+            console.warn("Failed to fetch dashboard data", error)
         } finally {
             setLoading(false)
         }

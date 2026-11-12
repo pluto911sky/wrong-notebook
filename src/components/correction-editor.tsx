@@ -22,6 +22,7 @@ import { normalizeMistakeStatusForSave, type MistakeStatus } from "@/lib/mistake
 import type { ReanswerQuestionResult } from "@/lib/ai/types";
 import { buildReanswerRequestBody } from "@/lib/reanswer-request";
 import { GeogebraDemo } from "@/components/geogebra-demo";
+import { toast } from "@/components/ui/toast";
 
 interface ParsedQuestionWithSubject extends ParsedQuestion {
     subjectId?: string;
@@ -72,7 +73,7 @@ export function CorrectionEditor({ initialData, onSave, onCancel, imagePreview, 
         // Fetch notebooks for mapping
         apiClient.get<Notebook[]>("/api/notebooks")
             .then(setNotebooks)
-            .catch(err => console.error("Failed to fetch notebooks:", err));
+            .catch(err => console.warn("Failed to fetch notebooks:", err));
 
         apiClient.get<UserProfile>("/api/user")
             .then(user => {
@@ -82,13 +83,13 @@ export function CorrectionEditor({ initialData, onSave, onCancel, imagePreview, 
                     setEducationStage(user.educationStage);
                 }
             })
-            .catch(err => console.error("Failed to fetch user info for grade calculation:", err));
+            .catch(err => console.warn("Failed to fetch user info for grade calculation:", err));
     }, [language]);
 
     // 重新解题函数
     const handleReanswer = async () => {
         if (!data.questionText.trim()) {
-            alert(t.editor.enterQuestionFirst || 'Please enter question text first');
+            toast.error(t.editor.enterQuestionFirst || 'Please enter question text first');
             return;
         }
 
@@ -125,9 +126,9 @@ export function CorrectionEditor({ initialData, onSave, onCancel, imagePreview, 
                 ),
             }));
 
-            alert(t.editor.reanswerSuccess || '✅ Answer and analysis updated!');
+            toast.success(t.editor.reanswerSuccess || '✅ Answer and analysis updated!');
         } catch (error: unknown) {
-            console.error("Reanswer failed:", error);
+            console.warn("Reanswer failed:", error);
             const apiError = error as { data?: { message?: string } };
             const msg = apiError.data?.message || '';
 
@@ -142,7 +143,7 @@ export function CorrectionEditor({ initialData, onSave, onCancel, imagePreview, 
                 errorText = reanswerErrors.responseError || t.errors?.AI_RESPONSE_ERROR || errorText;
             }
 
-            alert(errorText);
+            toast.error(errorText);
 
         } finally {
             setIsReanswering(false);
@@ -151,11 +152,11 @@ export function CorrectionEditor({ initialData, onSave, onCancel, imagePreview, 
 
     const handleAnalyzeGeogebra = async () => {
         if (!data.questionText.trim()) {
-            alert(t.editor.enterQuestionFirst || '请先输入题目文本');
+            toast.error(t.editor.enterQuestionFirst || '请先输入题目文本');
             return;
         }
         if (!data.answerText.trim()) {
-            alert('请先生成或输入答案');
+            toast.error('请先生成或输入答案');
             return;
         }
 
@@ -186,7 +187,7 @@ export function CorrectionEditor({ initialData, onSave, onCancel, imagePreview, 
                 setGeogebraError(result.description || "该题目不适合用 GeoGebra 演示");
             }
         } catch (error: any) {
-            console.error("GeoGebra analysis failed:", error);
+            console.warn("GeoGebra analysis failed:", error);
             setGeogebraError("分析失败，请稍后重试");
         } finally {
             setIsAnalyzingGeogebra(false);
@@ -205,7 +206,7 @@ export function CorrectionEditor({ initialData, onSave, onCancel, imagePreview, 
                     <Button
                         onClick={async () => {
                             if (!data.subjectId) {
-                                alert(t.editor.messages?.selectNotebook || "Please select a notebook");
+                                toast.error(t.editor.messages?.selectNotebook || "Please select a notebook");
                                 return;
                             }
                             if (isSaving) return; // 防止重复点击

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Sparkles, ArrowRight, RotateCcw, Heart, Trophy, Award, Gift } from "lucide-react";
 
@@ -66,7 +66,9 @@ export function PetFeedbackDialog({
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="max-w-md sm:rounded-3xl p-6 overflow-hidden border-2 shadow-2xl">
+            <DialogContent aria-describedby={undefined} className="max-w-md sm:rounded-3xl p-6 overflow-hidden border-2 shadow-2xl">
+                {/* 无障碍标题：Radix 要求每个弹窗都有 DialogTitle，缺失时会 console.error（即开发模式左下角的错误角标） */}
+                <DialogTitle className="sr-only">{isCorrect ? '答对啦' : '再接再厉'}</DialogTitle>
                 {isCorrect ? (
                     /* 做对题：欢呼雀跃、戴博士帽、撒花赞美的小猫 */
                     <div className="flex flex-col items-center text-center space-y-4 pt-2 animate-in zoom-in-95 duration-300">

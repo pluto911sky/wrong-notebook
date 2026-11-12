@@ -15,15 +15,29 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     const [language, setLanguage] = useState<Language>('zh'); // Default to Chinese
 
     useEffect(() => {
-        const savedLang = localStorage.getItem('app-language') as Language;
-        if (savedLang) {
-            setLanguage(savedLang);
+        // 隐私模式等场景下 localStorage 可能抛错，读不到就保持默认中文
+        try {
+            const savedLang = localStorage.getItem('app-language');
+            if (savedLang === 'zh' || savedLang === 'en') {
+                setLanguage(savedLang);
+            }
+        } catch {
+            // ignore
         }
     }, []);
 
+    // 同步 <html lang>，读屏与浏览器翻译依赖它（layout 中的静态值只是首屏默认）
+    useEffect(() => {
+        document.documentElement.lang = language === 'zh' ? 'zh-CN' : 'en';
+    }, [language]);
+
     const handleSetLanguage = (lang: Language) => {
         setLanguage(lang);
-        localStorage.setItem('app-language', lang);
+        try {
+            localStorage.setItem('app-language', lang);
+        } catch {
+            // ignore
+        }
     };
 
     const value = {

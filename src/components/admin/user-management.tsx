@@ -18,6 +18,7 @@ import {
 import { Trash2, Ban, CheckCircle, Loader2 } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
 import { AdminUser, AppConfig } from "@/types/api";
+import { toast } from "@/components/ui/toast";
 
 export function UserManagement() {
     const { data: session } = useSession();
@@ -37,7 +38,7 @@ export function UserManagement() {
             const data = await apiClient.get<AppConfig>("/api/settings");
             setAllowRegistration(data.allowRegistration !== false);
         } catch (error) {
-            console.error("Failed to fetch config", error);
+            console.warn("Failed to fetch config", error);
         }
     };
 
@@ -47,8 +48,8 @@ export function UserManagement() {
             await apiClient.post("/api/settings", { allowRegistration: checked });
             setAllowRegistration(checked);
         } catch (error) {
-            console.error("Failed to update registration setting", error);
-            alert(t.common.error);
+            console.warn("Failed to update registration setting", error);
+            toast.error(t.common.error);
         } finally {
             setSavingRegistration(false);
         }
@@ -60,7 +61,7 @@ export function UserManagement() {
             const data = await apiClient.get<AdminUser[]>("/api/admin/users");
             setUsers(data);
         } catch (error) {
-            console.error("Failed to fetch users", error);
+            console.warn("Failed to fetch users", error);
         } finally {
             setLoading(false);
         }
@@ -77,8 +78,8 @@ export function UserManagement() {
             await apiClient.patch(`/api/admin/users/${user.id}`, { isActive: !user.isActive });
             fetchUsers();
         } catch (error) {
-            console.error("Failed to update user status", error);
-            alert(t.common.error);
+            console.warn("Failed to update user status", error);
+            toast.error(t.common.error);
         }
     };
 
@@ -89,9 +90,9 @@ export function UserManagement() {
             await apiClient.delete(`/api/admin/users/${user.id}`);
             fetchUsers();
         } catch (error: any) {
-            console.error("Failed to delete user", error);
+            console.warn("Failed to delete user", error);
             const text = error.data?.message || t.common.error;
-            alert(text);
+            toast.error(text);
         }
     };
 

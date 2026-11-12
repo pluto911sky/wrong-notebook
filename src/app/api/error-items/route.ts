@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { getServerSession } from "next-auth";
@@ -8,9 +8,22 @@ import { createLogger } from "@/lib/logger";
 import { findParentTagIdForGrade } from "@/lib/tag-recognition";
 import { inferSubjectFromName } from "@/lib/knowledge-tags";
 import { normalizeMistakeStatusForSave } from "@/lib/mistake-status";
-import { generateAllVariants, parseStoredVariants } from "@/lib/practice-variants-server";
+import { generateAllVariants, parseStoredVariants, enqueueBackgroundTask } from "@/lib/practice-variants-server";
 
 const logger = createLogger('api:error-items');
+
+/**
+ * 在响应返回后执行后台任务。
+ * after() 只能在 Next 请求作用域内调用；脱离作用域（如直接调用路由的测试、脚本）时
+ * 退化为不等待的异步执行，保证保存本身不受影响。
+ */
+function runAfterResponse(task: () => Promise<void>) {
+    try {
+        after(task);
+    } catch {
+        void task();
+    }
+}
 
 export async function POST(req: Request) {
     logger.info('POST /api/error-items called');
@@ -159,23 +172,10 @@ export async function POST(req: Request) {
 
         logger.info({ tagNames, tagConnectionsCount: tagConnections.length }, 'Creating ErrorItem with tags');
 
-        // 确保上传保存时已经预生成好“举一反三”变式题（重点：困难 hard、挑战 harder、中等 medium、简单 easy）
-        let existingVariants = parseStoredVariants(ocrText);
-        if (!existingVariants.hard || !existingVariants.harder) {
-            try {
-                existingVariants = await generateAllVariants({
-                    questionText: questionText || "",
-                    knowledgePoints: tagNames,
-                    language: "zh",
-                    gradeSemester: finalGradeSemester,
-                    subjectName: subject?.name || "数学",
-                    existing: existingVariants,
-                });
-            } catch (e) {
-                logger.warn({ e }, "Pre-generation on save had a partial error");
-            }
-        }
-        const serializedVariants = Object.keys(existingVariants).length > 0 ? JSON.stringify(existingVariants) : (ocrText || null);
+        // 客户端可能已带上预生成的变式题（ocrText 中的 JSON），这里只保留合法的变式题结构
+        const existingVariants = parseStoredVariants(ocrText);
+        const serializedVariants = Object.keys(existingVariants).length > 0 ? JSON.stringify(existingVariants) : null;
+        const needsVariants = !existingVariants.hard || !existingVariants.harder || !existingVariants.medium;
 
         // 创建错题记录
         try {
@@ -206,6 +206,35 @@ export async function POST(req: Request) {
             });
 
             logger.info({ errorItemId: errorItem.id, tagsCount: errorItem.tags?.length || 0 }, 'ErrorItem created successfully');
+
+            // 「举一反三」变式题放到响应之后后台生成：
+            // 之前在保存请求里同步等待 3 次 AI 调用，单次保存可能超过前端 60s 超时，
+            // 前端判失败而后端仍落库，用户重试就会产生重复错题。
+            if (needsVariants && questionText) {
+                runAfterResponse(() => enqueueBackgroundTask(async () => {
+                    try {
+                        const variants = await generateAllVariants({
+                            questionText,
+                            knowledgePoints: tagNames,
+                            language: "zh",
+                            gradeSemester: finalGradeSemester,
+                            subjectName: subject?.name || null,
+                            existing: existingVariants,
+                            sequential: true,
+                        });
+                        if (Object.keys(variants).length > 0) {
+                            await prisma.errorItem.update({
+                                where: { id: errorItem.id },
+                                data: { ocrText: JSON.stringify(variants) },
+                            });
+                        }
+                        logger.info({ errorItemId: errorItem.id, levels: Object.keys(variants) }, 'Background variant generation finished');
+                    } catch (e) {
+                        logger.warn({ errorItemId: errorItem.id, error: e instanceof Error ? e.message : String(e) }, 'Background variant generation failed');
+                    }
+                }));
+            }
+
             return NextResponse.json(errorItem, { status: 201 });
         } catch (dbError) {
             logger.error({

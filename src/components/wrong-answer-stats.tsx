@@ -41,7 +41,7 @@ export function WrongAnswerStats() {
             const data = await apiClient.get<AnalyticsData>("/api/analytics");
             setData(data);
         } catch (error) {
-            console.error(error);
+            console.warn(error);
         } finally {
             setLoading(false);
         }

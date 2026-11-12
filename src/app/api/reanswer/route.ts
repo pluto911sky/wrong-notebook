@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { getServerSession } from "next-auth";
 import { badRequest, createErrorResponse, ErrorCode } from "@/lib/api-errors";
 import { createLogger } from "@/lib/logger";
+import { classifyAIError } from "@/lib/ai/errors";
 
 const logger = createLogger('api:reanswer');
 
@@ -30,9 +31,16 @@ export async function POST(req: Request) {
             gradeSemester
         }, 'Reanswer request received');
 
-        if (!questionText || questionText.trim().length === 0) {
+        if (!questionText || typeof questionText !== 'string' || questionText.trim().length === 0) {
             logger.warn('Missing question text');
             return badRequest("Missing question text");
+        }
+        // 输入上限：防止超长文本 / 超大图片耗尽内存与 AI 额度
+        if (questionText.length > 20000) {
+            return badRequest("Question text too long");
+        }
+        if (imageBase64 && (typeof imageBase64 !== 'string' || imageBase64.length > 12 * 1024 * 1024)) {
+            return badRequest("Image too large");
         }
 
         const aiService = getAIService();
@@ -48,15 +56,8 @@ export async function POST(req: Request) {
         const stack = error instanceof Error ? error.stack : undefined;
         logger.error({ error: errorMessageFromError, stack }, 'Reanswer error occurred');
 
-        let errorMessage = errorMessageFromError || "Failed to reanswer question";
-
-        if (errorMessageFromError.includes('AI_AUTH_ERROR')) {
-            errorMessage = 'AI_AUTH_ERROR';
-        } else if (errorMessageFromError === 'AI_CONNECTION_FAILED') {
-            errorMessage = 'AI_CONNECTION_FAILED';
-        } else if (errorMessageFromError === 'AI_RESPONSE_ERROR') {
-            errorMessage = 'AI_RESPONSE_ERROR';
-        }
+        // 统一映射为 AI 错误码，前端据此显示可读提示
+        const errorMessage = classifyAIError(error);
 
         return createErrorResponse(errorMessage, 500, ErrorCode.AI_ERROR);
     }

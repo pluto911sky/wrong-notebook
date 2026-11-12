@@ -99,8 +99,7 @@ describe('AI Prompts', () => {
             expect(prompt).toContain('<wrong_answer_text>');
             expect(prompt).toContain('<mistake_status>');
             expect(prompt).toContain('<mistake_analysis>');
-            expect(prompt).toContain('wrong_attempt');
-            expect(prompt).toContain('not_attempted');
+            // 识别提示词已改为不再要求判断作答状态，统一填 unknown
             expect(prompt).toContain('unknown');
         });
     });

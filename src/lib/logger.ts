@@ -223,6 +223,9 @@ function createLoggerInstance(baseContext: LogContext = {}): Logger {
 
     // Decorative box logging (only in development)
     box: (title: string, content?: string | LogContext, emoji: string = '📋') => {
+      // box 用于输出完整 prompt / AI 原始响应等大块内容，体积大且含用户题目，
+      // 因此只在 debug 级别输出，生产环境（默认 info）不再落日志
+      if (LOG_LEVELS.debug < getLogLevel()) return;
       if (!isPrettyMode) {
         // In production, just log as JSON
         const ctx = typeof content === 'string' ? { content } : (content || {});

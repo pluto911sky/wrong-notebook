@@ -5,6 +5,7 @@ import { getServerSession } from "next-auth";
 import { getAIService } from "@/lib/ai";
 import { DifficultyLevel } from "@/lib/ai/types";
 import { notFound, internalError, unauthorized } from "@/lib/api-errors";
+import { classifyAIError } from "@/lib/ai/errors";
 import { createLogger } from "@/lib/logger";
 import { parseStoredVariants } from "@/lib/practice-variants";
 
@@ -96,7 +97,7 @@ export async function POST(req: Request) {
         }
     } catch (error) {
         logger.error({ error }, 'Error generating practice');
-        const errorMessage = error instanceof Error ? error.message : "Failed to generate practice question";
-        return internalError(errorMessage);
+        // 统一返回 AI 错误码，前端可翻译
+        return internalError(classifyAIError(error));
     }
 }

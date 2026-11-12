@@ -28,6 +28,11 @@ export interface AIService {
     generateSimilarQuestion(originalQuestion: string, knowledgePoints: string[], language?: 'zh' | 'en', difficulty?: DifficultyLevel, gradeSemester?: string | null): Promise<ParsedQuestionFromSchema>;
     reanswerQuestion(questionText: string, language?: 'zh' | 'en', subject?: string | null, imageBase64?: string, gradeSemester?: string | null): Promise<ReanswerQuestionResult>;
     analyzeForGeogebra(questionText: string, answerText: string, analysis: string, previousErrors?: string): Promise<GeogebraAnalysisResult>;
+    /**
+     * 通用文本补全：给定系统提示与用户内容，返回模型原始文本。
+     * 供批量文本拆题等不走固定模板的场景使用，失败时抛出 AI_* 错误码。
+     */
+    completeText(systemPrompt: string, userContent: string, options?: { json?: boolean; maxOutputTokens?: number }): Promise<string>;
 }
 
 export interface AIConfig {

@@ -105,7 +105,7 @@ export function ImageCropper({ imageSrc, open, onClose, onCropComplete }: ImageC
                     onCropComplete(croppedBlob);
                 }
             } catch (e) {
-                console.error(e);
+                console.warn(e);
             }
         } else {
             // If no crop, just return original? Or force crop?
@@ -121,7 +121,7 @@ export function ImageCropper({ imageSrc, open, onClose, onCropComplete }: ImageC
                     const blob = await res.blob();
                     onCropComplete(blob);
                 } catch (e) {
-                    console.error(e);
+                    console.warn(e);
                 }
             }
         }

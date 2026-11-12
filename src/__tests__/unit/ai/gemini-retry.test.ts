@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Mock dependencies
 vi.mock('@google/genai', () => {
@@ -59,7 +59,7 @@ describe('GeminiProvider Retry Logic', () => {
     it('should retry on network error and eventually succeed', async () => {
         mockGenerateContent
             .mockRejectedValueOnce(new Error('fetch failed'))
-            .mockRejectedValueOnce(new Error('network timeout'))
+            .mockRejectedValueOnce(new Error('ECONNRESET'))
             .mockResolvedValueOnce({
                 text: '<question_text>Q</question_text><answer_text>A</answer_text><analysis>An</analysis><subject>数学</subject>',
                 usageMetadata: {}
@@ -110,6 +110,56 @@ describe('GeminiProvider Retry Logic', () => {
 
         expect(result).toBeDefined();
         expect(mockGenerateContent).toHaveBeenCalledTimes(2);
+    });
+
+    it('should not retry on timeout (retrying only makes the user wait longer)', async () => {
+        mockGenerateContent.mockRejectedValue(new Error('This operation was aborted'));
+
+        await expect(provider.analyzeImage('base64data'))
+            .rejects
+            .toThrow('AI_TIMEOUT_ERROR');
+        expect(mockGenerateContent).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not retry on quota exhausted', async () => {
+        mockGenerateContent.mockRejectedValue(Object.assign(new Error('{"error":{"code":429,"message":"You exceeded your current quota"}}'), { status: 429 }));
+
+        await expect(provider.analyzeImage('base64data'))
+            .rejects
+            .toThrow('AI_QUOTA_EXCEEDED');
+        expect(mockGenerateContent).toHaveBeenCalledTimes(1);
+    });
+
+    it('should drop thinking config and retry once when the model rejects it', async () => {
+        provider = new GeminiProvider({ apiKey: 'test-key', model: 'gemini-3.8-flash' });
+        // @ts-expect-error - accessing private property for testing
+        mockGenerateContent = provider.ai.models.generateContent;
+        mockGenerateContent
+            .mockRejectedValueOnce(Object.assign(new Error('400 Thinking level is not supported for this model.'), { status: 400 }))
+            .mockResolvedValueOnce({
+                text: '<question_text>Q</question_text><answer_text>A</answer_text><analysis>An</analysis><subject>英语</subject>',
+                usageMetadata: {}
+            });
+
+        const result = await provider.analyzeImage('base64data');
+        expect(result.subject).toBe('英语');
+        expect(mockGenerateContent).toHaveBeenCalledTimes(2);
+        expect(mockGenerateContent.mock.calls[0][0].config.thinkingConfig).toBeDefined();
+        expect(mockGenerateContent.mock.calls[1][0].config.thinkingConfig).toBeUndefined();
+    });
+
+    it('should report truncation and safety blocks with dedicated codes', async () => {
+        mockGenerateContent.mockResolvedValueOnce({
+            text: '<question_text>Long passage',
+            candidates: [{ finishReason: 'MAX_TOKENS' }],
+        });
+        await expect(provider.analyzeImage('base64data')).rejects.toThrow('AI_RESPONSE_TRUNCATED');
+
+        mockGenerateContent.mockResolvedValueOnce({
+            text: '',
+            candidates: [{ finishReason: 'SAFETY' }],
+        });
+        await expect(provider.analyzeImage('base64data')).rejects.toThrow('AI_CONTENT_BLOCKED');
     });
 
     it('should retry on connection reset', async () => {

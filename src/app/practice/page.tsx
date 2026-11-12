@@ -179,11 +179,11 @@ function PracticeContent() {
                     <ArrowLeft className="mr-2 h-4 w-4" />
                     {t.common?.back || "返回错题"}
                 </Button>
-                <Link href="/">
-                    <Button variant="ghost" size="icon">
+                <Button asChild variant="ghost" size="icon">
+                    <Link href="/" aria-label="返回首页">
                         <House className="h-5 w-5" />
-                    </Button>
-                </Link>
+                    </Link>
+                </Button>
             </div>
 
             <div className="text-center space-y-3">

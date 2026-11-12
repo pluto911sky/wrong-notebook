@@ -14,6 +14,16 @@ import { Badge } from "@/components/ui/badge";
 import { Sparkles, Heart, Trophy, Cookie, Fish, X, Flame, Gift } from "lucide-react";
 import { PetLotteryDialog } from "./pet-lottery-dialog";
 
+const PET_COLLAPSED_KEY = "pet-widget-collapsed";
+
+function persistCollapsed(collapsed: boolean) {
+    try {
+        localStorage.setItem(PET_COLLAPSED_KEY, collapsed ? "1" : "0");
+    } catch {
+        // ignore
+    }
+}
+
 export function PetWidget() {
     const [pet, setPet] = useState<PetState | null>(null);
     const [dialogText, setDialogText] = useState("");
@@ -26,6 +36,14 @@ export function PetWidget() {
 
     useEffect(() => {
         setPet(getPetState());
+
+        // 悬浮宠物会挡住右下角的保存/录入按钮：记住用户的收起选择，窄屏默认收起
+        try {
+            const saved = localStorage.getItem(PET_COLLAPSED_KEY);
+            setIsCollapsed(saved !== null ? saved === "1" : window.innerWidth < 768);
+        } catch {
+            setIsCollapsed(window.innerWidth < 768);
+        }
 
         const handleUpdate = (e: any) => {
             if (e.detail) {
@@ -94,9 +112,11 @@ export function PetWidget() {
                             onClick={(e) => {
                                 e.stopPropagation();
                                 setIsCollapsed(true);
+                                persistCollapsed(true);
                             }}
-                            className="absolute -top-2.5 -left-2.5 z-10 w-6 h-6 rounded-full bg-muted border text-muted-foreground flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive hover:text-white shadow"
+                            className="absolute -top-2.5 -left-2.5 z-10 w-6 h-6 rounded-full bg-muted border text-muted-foreground flex items-center justify-center opacity-70 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100 transition-opacity hover:bg-destructive hover:text-white shadow"
                             title="最小化伴学宠物"
+                            aria-label="最小化伴学宠物"
                         >
                             <X className="w-3.5 h-3.5" />
                         </button>
@@ -248,9 +268,13 @@ export function PetWidget() {
                     /* 折叠后的大号浮球，显示算算喵小头像 */
                     <button
                         type="button"
-                        onClick={() => setIsCollapsed(false)}
+                        onClick={() => {
+                            setIsCollapsed(false);
+                            persistCollapsed(false);
+                        }}
                         className="w-14 h-14 rounded-full bg-gradient-to-tr from-orange-500 to-amber-400 text-white shadow-2xl flex items-center justify-center hover:scale-110 transition-transform cursor-pointer border-3 border-white p-2"
                         title="唤出伴学宠物"
+                        aria-label="唤出伴学宠物"
                     >
                         <div className="relative w-full h-full">
                             <svg viewBox="0 0 100 100" className="w-full h-full">

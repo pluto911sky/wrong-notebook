@@ -13,6 +13,7 @@ import { Notebook } from "@/types/api";
 import { apiClient } from "@/lib/api-client";
 
 import { useLanguage } from "@/contexts/LanguageContext";
+import { toast } from "@/components/ui/toast";
 
 // ... imports
 
@@ -35,8 +36,8 @@ export default function NotebookDetailPage() {
             const data = await apiClient.get<Notebook>(`/api/notebooks/${id}`);
             setNotebook(data);
         } catch (error) {
-            console.error("Failed to fetch notebook:", error);
-            alert(t.notebooks?.notFound || "Notebook not found");
+            console.warn("Failed to fetch notebook:", error);
+            toast.error(t.notebooks?.notFound || "Notebook not found");
             router.push("/notebooks");
         } finally {
             setLoading(false);
@@ -81,20 +82,22 @@ export default function NotebookDetailPage() {
                         </p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                        <Link href={`/notebooks/${notebook.id}/add`}>
-                            <Button size="sm" className="hidden sm:flex">
+                        <Button asChild size="sm" className="hidden sm:flex">
+                            <Link href={`/notebooks/${notebook.id}/add`}>
                                 <Plus className="mr-2 h-4 w-4 md:h-6 md:w-6" />
                                 {t.notebooks?.addError || "Add Error"}
-                            </Button>
-                            <Button size="icon" className="sm:hidden">
+                            </Link>
+                        </Button>
+                        <Button asChild size="icon" className="sm:hidden">
+                            <Link href={`/notebooks/${notebook.id}/add`} aria-label={t.notebooks?.addError || "Add Error"}>
                                 <Plus className="h-4 w-4 md:h-6 md:w-6" />
-                            </Button>
-                        </Link>
-                        <Link href="/">
-                            <Button variant="ghost" size="icon">
+                            </Link>
+                        </Button>
+                        <Button asChild variant="ghost" size="icon">
+                            <Link href="/" aria-label="返回首页">
                                 <House className="h-5 w-5 md:h-6 md:w-6" />
-                            </Button>
-                        </Link>
+                            </Link>
+                        </Button>
                     </div>
                 </div>
 

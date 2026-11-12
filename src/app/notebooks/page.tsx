@@ -14,6 +14,7 @@ import { Notebook } from "@/types/api";
 import { apiClient } from "@/lib/api-client";
 
 import { useLanguage } from "@/contexts/LanguageContext";
+import { toast } from "@/components/ui/toast";
 
 // ... imports
 
@@ -34,7 +35,7 @@ export default function NotebooksPage() {
             const data = await apiClient.get<Notebook[]>("/api/notebooks");
             setNotebooks(data);
         } catch (error) {
-            console.error("Failed to fetch notebooks:", error);
+            console.warn("Failed to fetch notebooks:", error);
         } finally {
             setLoading(false);
         }
@@ -45,9 +46,9 @@ export default function NotebooksPage() {
             await apiClient.post("/api/notebooks", { name });
             await fetchNotebooks();
         } catch (error: any) {
-            console.error(error);
+            console.warn(error);
             const message = error.data?.message || t.notebooks?.createError || "Failed to create";
-            alert(message);
+            toast.error(message);
         }
     };
 
@@ -60,7 +61,7 @@ export default function NotebooksPage() {
 
     const handleDelete = async (id: string, errorCount: number, name: string) => {
         if (errorCount > 0) {
-            alert(t.notebooks?.deleteNotEmpty || "Please clear all items in this notebook first.");
+            toast.error(t.notebooks?.deleteNotEmpty || "Please clear all items in this notebook first.");
             return;
         }
         if (!confirm((t.notebooks?.deleteConfirm || "Are you sure?").replace("{name}", name))) return;
@@ -69,9 +70,9 @@ export default function NotebooksPage() {
             await apiClient.delete(`/api/notebooks/${id}`);
             await fetchNotebooks();
         } catch (error: any) {
-            console.error(error);
+            console.warn(error);
             const message = error.data?.message || t.notebooks?.deleteError || "Failed to delete";
-            alert(message);
+            toast.error(message);
         }
     };
 
@@ -106,11 +107,11 @@ export default function NotebooksPage() {
                         <Button onClick={() => setDialogOpen(true)} size="icon" className="sm:hidden">
                             <Plus className="h-4 w-4 md:h-6 md:w-6" />
                         </Button>
-                        <Link href="/">
-                            <Button variant="ghost" size="icon">
+                        <Button asChild variant="ghost" size="icon">
+                            <Link href="/" aria-label="返回首页">
                                 <House className="h-5 w-5 md:h-6 md:w-6" />
-                            </Button>
-                        </Link>
+                            </Link>
+                        </Button>
                     </div>
                 </div>
 

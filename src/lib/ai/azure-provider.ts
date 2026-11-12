@@ -2,7 +2,8 @@ import { AzureOpenAI } from "openai";
 import { AIService, ParsedQuestion, DifficultyLevel, ReanswerQuestionResult, GeogebraAnalysisResult } from "./types";
 import { generateAnalyzePrompt, generateSimilarQuestionPrompt, generateReanswerPrompt, generateGeogebraPrompt } from './prompts';
 import { getAppConfig } from '../config';
-import { safeParseParsedQuestion } from './schema';
+import { AIError, classifyAIError } from './errors';
+import { extractTag, parseQuestionResponse } from './response-parser';
 import { getMathTagsFromDB, getTagsFromDB } from './tag-service';
 import { createLogger } from '../logger';
 import { normalizeMistakeStatusForSave } from '../mistake-status';
@@ -66,77 +67,13 @@ export class AzureOpenAIProvider implements AIService {
         }, 'Azure AI Provider initialized');
     }
 
+    // 解析逻辑与其他 Provider 共用（response-parser.ts）
     private extractTag(text: string, tagName: string): string | null {
-        const startTag = `<${tagName}>`;
-        const endTag = `</${tagName}>`;
-        const startIndex = text.indexOf(startTag);
-        const endIndex = text.lastIndexOf(endTag);
-
-        if (startIndex === -1 || endIndex === -1 || startIndex >= endIndex) {
-            return null;
-        }
-
-        return text.substring(startIndex + startTag.length, endIndex).trim();
+        return extractTag(text, tagName, tagName === 'analysis');
     }
 
-    private parseResponse(text: string): ParsedQuestion {
-        logger.debug({ textLength: text.length }, 'Parsing AI response');
-
-        const questionText = this.extractTag(text, "question_text");
-        const answerText = this.extractTag(text, "answer_text");
-        const analysis = this.extractTag(text, "analysis");
-        const subjectRaw = this.extractTag(text, "subject");
-        const knowledgePointsRaw = this.extractTag(text, "knowledge_points");
-        const requiresImageRaw = this.extractTag(text, "requires_image");
-        const wrongAnswerText = this.extractTag(text, "wrong_answer_text") || "";
-        const mistakeAnalysis = this.extractTag(text, "mistake_analysis") || "";
-        const mistakeStatusRaw = this.extractTag(text, "mistake_status");
-
-        // Basic Validation
-        if (!questionText || !answerText || !analysis) {
-            logger.error({ rawTextSample: text.substring(0, 500) }, 'Missing critical XML tags');
-            throw new Error("Invalid AI response: Missing critical XML tags (<question_text>, <answer_text>, or <analysis>)");
-        }
-
-        // Process Subject
-        let subject: ParsedQuestion['subject'] = '其他';
-        const validSubjects: ParsedQuestion['subject'][] = ["数学", "物理", "化学", "生物", "英语", "语文", "历史", "地理", "政治", "其他"];
-        if (subjectRaw && (validSubjects as string[]).includes(subjectRaw)) {
-            subject = subjectRaw as ParsedQuestion['subject'];
-        }
-
-        // Process Knowledge Points
-        let knowledgePoints: string[] = [];
-        if (knowledgePointsRaw) {
-            knowledgePoints = knowledgePointsRaw.split(/[,，\n]/).map(k => k.trim()).filter(k => k.length > 0);
-        }
-
-        // Process requiresImage
-        const requiresImage = requiresImageRaw?.toLowerCase().trim() === 'true';
-        const mistakeStatus = normalizeMistakeStatusForSave(mistakeStatusRaw, wrongAnswerText);
-
-        // Construct Result
-        const result: ParsedQuestion = {
-            questionText,
-            answerText,
-            analysis,
-            wrongAnswerText,
-            mistakeAnalysis,
-            mistakeStatus,
-            subject,
-            knowledgePoints,
-            requiresImage
-        };
-
-        // Final Schema Validation
-        const validation = safeParseParsedQuestion(result);
-        if (validation.success) {
-            logger.debug('Validated successfully via XML tags');
-            return validation.data;
-        } else {
-            logger.warn({ validationError: validation.error.format() }, 'Schema validation warning');
-            return result;
-        }
+    private parseResponse(text: string, truncated = false): ParsedQuestion {
+        return parseQuestionResponse(text, { truncated });
     }
 
     async analyzeImage(
@@ -226,7 +163,6 @@ export class AzureOpenAIProvider implements AIService {
                 stack: error instanceof Error ? error.stack : undefined
             });
             this.handleError(error);
-            throw error;
         }
     }
 
@@ -292,7 +228,6 @@ Knowledge Points: ${knowledgePoints.join(", ")}
                 stack: error instanceof Error ? error.stack : undefined
             });
             this.handleError(error);
-            throw error;
         }
     }
 
@@ -373,7 +308,6 @@ Knowledge Points: ${knowledgePoints.join(", ")}
         } catch (error) {
             logger.error({ error, stack: error instanceof Error ? error.stack : undefined }, 'Error during reanswer');
             this.handleError(error);
-            throw error;
         }
     }
 
@@ -426,45 +360,35 @@ Knowledge Points: ${knowledgePoints.join(", ")}
         } catch (error) {
             logger.error({ error, stack: error instanceof Error ? error.stack : undefined }, 'Error during GeoGebra analysis');
             this.handleError(error);
-            throw error;
         }
     }
 
-    private handleError(error: unknown) {
-        logger.error({ error }, 'Azure OpenAI error');
-        if (error instanceof Error) {
-            const msg = error.message.toLowerCase();
-            if (msg.includes('fetch failed') || msg.includes('network') || msg.includes('connect')) {
-                throw new Error("AI_CONNECTION_FAILED");
-            }
-            // 超时错误 (包括 408 Request Timeout)
-            if (msg.includes('timeout') || msg.includes('timed out') || msg.includes('aborted') || msg.includes('408')) {
-                throw new Error("AI_TIMEOUT_ERROR");
-            }
-            // 配额/频率限制错误
-            if (msg.includes('quota') || msg.includes('额度') || msg.includes('rate limit') || msg.includes('429') || msg.includes('too many')) {
-                throw new Error("AI_QUOTA_EXCEEDED");
-            }
-            // 权限/403 错误
-            if (msg.includes('403') || msg.includes('forbidden') || msg.includes('permission')) {
-                throw new Error("AI_PERMISSION_DENIED");
-            }
-            // 资源不存在/404 错误
-            if (msg.includes('404') || msg.includes('not found') || msg.includes('does not exist')) {
-                throw new Error("AI_NOT_FOUND");
-            }
-            // 服务器错误 (500/502/503/504)
-            if (msg.includes('500') || msg.includes('502') || msg.includes('503') || msg.includes('504') ||
-                msg.includes('无可用') || msg.includes('overloaded') || msg.includes('unavailable')) {
-                throw new Error("AI_SERVICE_UNAVAILABLE");
-            }
-            if (msg.includes('invalid json') || msg.includes('parse')) {
-                throw new Error("AI_RESPONSE_ERROR");
-            }
-            if (msg.includes('api key') || msg.includes('unauthorized') || msg.includes('401')) {
-                throw new Error("AI_AUTH_ERROR");
-            }
+    async completeText(systemPrompt: string, userContent: string, options: { json?: boolean; maxOutputTokens?: number } = {}): Promise<string> {
+        try {
+            const response = await this.client.chat.completions.create({
+                model: this.deployment,
+                messages: [
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: userContent },
+                ],
+                max_tokens: options.maxOutputTokens ?? 16384,
+                ...(options.json ? { response_format: { type: "json_object" as const } } : {}),
+            });
+            const text = response.choices?.[0]?.message?.content || "";
+            if (!text) throw new AIError('AI_RESPONSE_ERROR', 'empty completion');
+            return text;
+        } catch (error) {
+            this.handleError(error);
         }
-        throw new Error("AI_UNKNOWN_ERROR");
+    }
+
+    /** 记录原始错误后抛出统一错误码（前端据此翻译提示） */
+    private handleError(error: unknown): never {
+        logger.error({
+            error: error instanceof Error ? error.message : String(error),
+            detail: error instanceof AIError ? error.detail : undefined,
+            status: (error as { status?: number })?.status,
+        }, 'Azure OpenAI error');
+        throw new Error(classifyAIError(error));
     }
 }

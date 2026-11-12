@@ -1,22 +1,27 @@
 "use client";
 
-import { useCallback, useState, useEffect, useRef } from "react";
-import { useDropzone } from "react-dropzone";
+import { useCallback, useState, useEffect, useRef, useMemo } from "react";
+import { useDropzone, type FileRejection } from "react-dropzone";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { UploadCloud, Loader2, Monitor, Plus, Trash2, Sparkles, Image as ImageIcon, Crop } from "lucide-react";
+import { UploadCloud, Loader2, Monitor, Plus, Sparkles, Image as ImageIcon } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { toast } from "@/components/ui/toast";
 
-// 添加 CaptureController 类型声明
-declare global {
-    interface Window {
-        CaptureController: {
-            new(): {
-                setFocusBehavior(behavior: 'no-focus-change' | 'focus-capturing-application'): void;
-            };
-        };
-    }
+/** Mac 外壳（WKWebView）注入的原生截图桥接 */
+type MacBridgeWindow = Window & {
+    webkit?: { messageHandlers?: { macNative?: { postMessage: (message: unknown) => void } } };
+    __onMacNativeScreenshot?: (dataUrl: string) => void;
+};
+const macWindow = () => window as MacBridgeWindow;
+
+/** 单批最多识别的图片数，避免一次性占满 AI 额度 */
+const MAX_FILES = 20;
+
+/** 用名称 + 大小 + 修改时间去重：同名同大小但内容不同的截图不会再被误判为重复 */
+function fileKey(file: File) {
+    return `${file.name}-${file.size}-${file.lastModified}`;
 }
 
 interface UploadZoneProps {
@@ -30,48 +35,66 @@ export function UploadZone({ onImageSelect, onBatchImagesSelect, isAnalyzing }: 
     const [isScreenshotting, setIsScreenshotting] = useState(false);
     const [isClient, setIsClient] = useState(false);
     const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-    const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
 
-    // 确保只在客户端渲染屏幕截图功能
+    // 确保只在客户端渲染屏幕截图功能。
+    // 之前这里在挂载时无用户手势地请求通知权限（且从未使用通知），已移除。
     useEffect(() => {
         setIsClient(true);
-        if ('Notification' in window && Notification.permission === 'default') {
-            Notification.requestPermission();
-        }
     }, []);
 
-    // 管理预览 URL，避免内存泄漏
-    useEffect(() => {
+    // 预览 URL 按文件对象缓存：新增/删除图片时不再整体重建（之前会导致缩略图闪烁、引用已释放的 URL）
+    const previewCache = useRef(new Map<File, string>());
+    const previewUrls = useMemo(() => {
+        const cache = previewCache.current;
         const urls: Record<string, string> = {};
-        selectedFiles.forEach((file, idx) => {
-            urls[`${file.name}-${file.size}-${idx}`] = URL.createObjectURL(file);
+        selectedFiles.forEach((file) => {
+            if (!cache.has(file)) cache.set(file, URL.createObjectURL(file));
+            urls[fileKey(file)] = cache.get(file)!;
         });
-        setPreviewUrls(urls);
-
-        return () => {
-            Object.values(urls).forEach((u) => URL.revokeObjectURL(u));
-        };
+        // 释放已移除文件的 URL
+        for (const [file, url] of cache) {
+            if (!selectedFiles.includes(file)) {
+                URL.revokeObjectURL(url);
+                cache.delete(file);
+            }
+        }
+        return urls;
     }, [selectedFiles]);
+
+    useEffect(() => {
+        const cache = previewCache.current;
+        return () => {
+            cache.forEach((url) => URL.revokeObjectURL(url));
+            cache.clear();
+        };
+    }, []);
 
     const addFiles = useCallback((newFiles: File[]) => {
         if (!newFiles || newFiles.length === 0) return;
         setSelectedFiles((prev) => {
-            const combined = [...prev, ...newFiles];
-            // 简单去重
-            const seen = new Set();
-            return combined.filter((f) => {
-                const key = `${f.name}-${f.size}`;
+            const seen = new Set(prev.map(fileKey));
+            const unique = newFiles.filter((f) => {
+                const key = fileKey(f);
                 if (seen.has(key)) return false;
                 seen.add(key);
                 return true;
             });
+            const combined = [...prev, ...unique];
+            if (combined.length > MAX_FILES) {
+                toast.info(`一次最多识别 ${MAX_FILES} 张图片，多出的 ${combined.length - MAX_FILES} 张未加入`);
+            }
+            return combined.slice(0, MAX_FILES);
         });
     }, []);
 
     const onDrop = useCallback(
-        (acceptedFiles: File[]) => {
+        (acceptedFiles: File[], rejected: FileRejection[]) => {
             if (acceptedFiles.length > 0) {
                 addFiles(acceptedFiles);
+            }
+            if (rejected.length > 0) {
+                // 之前被拒绝的文件没有任何提示，用户以为「识别不到」
+                toast.error(`有 ${rejected.length} 个文件不是支持的图片格式（JPG / PNG / WebP），已忽略`);
             }
         },
         [addFiles]
@@ -82,7 +105,6 @@ export function UploadZone({ onImageSelect, onBatchImagesSelect, isAnalyzing }: 
         accept: {
             "image/*": [".jpeg", ".jpg", ".png", ".webp"],
         },
-        maxFiles: 20,
         disabled: isAnalyzing,
         noClick: true,
     });
@@ -139,7 +161,7 @@ export function UploadZone({ onImageSelect, onBatchImagesSelect, isAnalyzing }: 
             }
         };
 
-        (window as any).__onMacNativeScreenshot = (dataUrl: string) => {
+        macWindow().__onMacNativeScreenshot = (dataUrl: string) => {
             setIsScreenshotting(false);
             if (!dataUrl) return;
             fetch(dataUrl)
@@ -150,20 +172,23 @@ export function UploadZone({ onImageSelect, onBatchImagesSelect, isAnalyzing }: 
                     });
                     addFiles([file]);
                 })
-                .catch((err) => console.error("Mac screenshot parse error:", err));
+                .catch((err) => {
+                    console.warn("Mac screenshot parse error:", err);
+                    toast.error("截图读取失败，请重试");
+                });
         };
 
         window.addEventListener("paste", handlePaste);
         return () => {
             window.removeEventListener("paste", handlePaste);
-            delete (window as any).__onMacNativeScreenshot;
+            delete macWindow().__onMacNativeScreenshot;
         };
     }, [isAnalyzing, addFiles]);
 
     // 检查是否支持屏幕截图
     const isScreenshotSupported = () => {
         if (!isClient || typeof window === "undefined") return false;
-        if ((window as any).webkit?.messageHandlers?.macNative) return true;
+        if (macWindow().webkit?.messageHandlers?.macNative) return true;
         return typeof navigator !== "undefined" &&
             "mediaDevices" in navigator &&
             "getDisplayMedia" in navigator.mediaDevices;
@@ -171,25 +196,19 @@ export function UploadZone({ onImageSelect, onBatchImagesSelect, isAnalyzing }: 
 
     const handleScreenshot = async () => {
         if (!isScreenshotSupported()) {
-            alert(t.upload.screenshotNotSupported);
+            toast.error(t.upload.screenshotNotSupported);
             return;
         }
 
-        if ((window as any).webkit?.messageHandlers?.macNative) {
+        const macNative = macWindow().webkit?.messageHandlers?.macNative;
+        if (macNative) {
             setIsScreenshotting(true);
-            (window as any).webkit.messageHandlers.macNative.postMessage({
-                action: "screenshot",
-            });
+            macNative.postMessage({ action: "screenshot" });
             return;
         }
 
         setIsScreenshotting(true);
         try {
-            let controller;
-            if ("CaptureController" in window) {
-                controller = new window.CaptureController();
-            }
-
             const stream = await navigator.mediaDevices.getDisplayMedia({
                 video: true,
                 audio: false,
@@ -228,7 +247,10 @@ export function UploadZone({ onImageSelect, onBatchImagesSelect, isAnalyzing }: 
                 }
             }, "image/png", 1.0);
         } catch (error) {
-            console.error("Screenshot failed:", error);
+            // 用户在系统弹窗中取消共享属于正常操作，不提示
+            if (error instanceof Error && error.name === "NotAllowedError") return;
+            console.warn("Screenshot failed:", error);
+            toast.error(t.upload.screenshotFailed || "截图失败");
         } finally {
             setIsScreenshotting(false);
         }
@@ -302,7 +324,7 @@ export function UploadZone({ onImageSelect, onBatchImagesSelect, isAnalyzing }: 
                                 {/* 图片缩略图网格 */}
                                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-[300px] overflow-y-auto p-1">
                                     {selectedFiles.map((file, idx) => {
-                                        const key = `${file.name}-${file.size}-${idx}`;
+                                        const key = fileKey(file);
                                         const url = previewUrls[key];
                                         return (
                                             <div
@@ -326,6 +348,7 @@ export function UploadZone({ onImageSelect, onBatchImagesSelect, isAnalyzing }: 
 
                                                 <button
                                                     type="button"
+                                                    aria-label={`移除 ${file.name}`}
                                                     onClick={() => removeFile(idx)}
                                                     className="absolute top-1 right-1 w-6 h-6 rounded-full bg-red-500/80 hover:bg-red-600 text-white flex items-center justify-center opacity-80 hover:opacity-100 transition-opacity cursor-pointer shadow"
                                                 >
@@ -356,7 +379,7 @@ export function UploadZone({ onImageSelect, onBatchImagesSelect, isAnalyzing }: 
                                         ) : (
                                             <>
                                                 <Sparkles className="w-4 h-4 mr-2 fill-white" />
-                                                开始智能分析 (共 {selectedFiles.length} 张图片) 🚀
+                                                开始识别（共 {selectedFiles.length} 张）
                                             </>
                                         )}
                                     </Button>
@@ -384,7 +407,7 @@ export function UploadZone({ onImageSelect, onBatchImagesSelect, isAnalyzing }: 
                                         支持同时选择多张错题照片或试卷截图，AI 将逐一智能识别考点并生成解答
                                     </p>
                                     <p className="text-[11px] text-amber-600 dark:text-amber-400 font-bold pt-1">
-                                        💡 提示：支持 Ctrl+V / Cmd+V 直接粘贴截图，也支持按住 Shift / Cmd 多选图片！
+                                        提示：可用 Ctrl+V / Cmd+V 直接粘贴截图，也可按住 Shift / Cmd 多选图片
                                     </p>
                                 </div>
                             </div>

@@ -27,6 +27,10 @@ vi.mock('next-auth/react', () => ({
     }),
 }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: mocks.push }) }));
+// 设置弹窗的提示已从 alert 改为 toast，这里把 toast 统一接到原来的 alert 断言上
+vi.mock('@/components/ui/toast', () => ({
+    toast: { success: mocks.alert, error: mocks.alert, info: mocks.alert, dismiss: vi.fn() },
+}));
 vi.mock('@/lib/api-client', () => ({
     apiClient: {
         get: mocks.get, post: mocks.post, put: mocks.put,

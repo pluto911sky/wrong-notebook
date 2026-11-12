@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 import { useLanguage } from "@/contexts/LanguageContext";
+import { toast } from "@/components/ui/toast";
 
 interface RenameNotebookDialogProps {
     open: boolean;
@@ -32,7 +33,7 @@ export function RenameNotebookDialog({ open, onOpenChange, currentName, onRename
 
     const handleRename = async () => {
         if (!name.trim()) {
-            alert(t.notebooks?.renameDialog?.enterName || "Please enter notebook name");
+            toast.error(t.notebooks?.renameDialog?.enterName || "Please enter notebook name");
             return;
         }
 
@@ -41,7 +42,7 @@ export function RenameNotebookDialog({ open, onOpenChange, currentName, onRename
             await onRename(name.trim());
             onOpenChange(false);
         } catch (error) {
-            console.error(error);
+            console.warn(error);
         } finally {
             setLoading(false);
         }

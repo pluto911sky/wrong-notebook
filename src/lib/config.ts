@@ -134,7 +134,27 @@ const DEFAULT_CONFIG: AppConfig = {
     },
 };
 
+// 按文件修改时间缓存解析结果：一次识别请求里会多次调用 getAppConfig，
+// 之前每次都同步读盘 + JSON.parse；文件变化（保存设置）后 mtime 改变会自动重新加载
+let configCache: { mtimeMs: number; size: number; value: AppConfig } | null = null;
+
 export function getAppConfig(): AppConfig {
+    let stat: fs.Stats | null = null;
+    try {
+        stat = fs.statSync(CONFIG_FILE_PATH);
+    } catch {
+        stat = null;
+    }
+    if (stat && configCache && configCache.mtimeMs === stat.mtimeMs && configCache.size === stat.size) {
+        // 返回副本，避免调用方修改缓存
+        return structuredClone(configCache.value);
+    }
+    const value = loadAppConfig();
+    configCache = stat ? { mtimeMs: stat.mtimeMs, size: stat.size, value } : null;
+    return structuredClone(value);
+}
+
+function loadAppConfig(): AppConfig {
     if (fs.existsSync(CONFIG_FILE_PATH)) {
         try {
             const fileContent = fs.readFileSync(CONFIG_FILE_PATH, 'utf-8');
@@ -194,6 +214,8 @@ export function updateAppConfig(newConfig: Partial<AppConfig>) {
 
     try {
         fs.writeFileSync(CONFIG_FILE_PATH, JSON.stringify(updatedConfig, null, 2));
+        // 同一毫秒内写入且大小相同时 mtime 可能不变，主动失效缓存
+        configCache = null;
         return updatedConfig;
     } catch (error) {
         logger.error({ error }, 'Failed to write config file');

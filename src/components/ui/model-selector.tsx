@@ -69,7 +69,7 @@ export function ModelSelector({ provider, apiKey, baseUrl, currentModel, instanc
                 setUseCustom(true);
             }
         } catch (err: any) {
-            console.error("Failed to fetch models:", err);
+            console.warn("Failed to fetch models:", err);
             const errorMsg = err?.message || (t.modelSelector?.fetchFailed || "Failed to fetch models");
             setError(errorMsg + (t.modelSelector?.enterManually || ", please enter manually"));
             setUseCustom(true);

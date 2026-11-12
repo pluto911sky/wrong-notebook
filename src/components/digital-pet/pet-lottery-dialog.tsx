@@ -215,7 +215,9 @@ export function PetLotteryDialog({ isOpen, onClose }: PetLotteryDialogProps) {
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="w-[94vw] max-w-5xl h-[88vh] max-h-[820px] sm:rounded-3xl p-0 flex flex-col gap-0 overflow-hidden shadow-2xl border-2 border-amber-300/60 bg-gradient-to-b from-amber-50/40 via-background to-background">
+            <DialogContent aria-describedby={undefined} className="w-[94vw] max-w-5xl h-[88vh] max-h-[820px] sm:rounded-3xl p-0 flex flex-col gap-0 overflow-hidden shadow-2xl border-2 border-amber-300/60 bg-gradient-to-b from-amber-50/40 via-background to-background">
+                {/* 无障碍标题：Radix 要求每个弹窗都有 DialogTitle，缺失时会 console.error（即开发模式左下角的错误角标） */}
+                <DialogTitle className="sr-only">心愿卡包</DialogTitle>
                 {/* 顶栏：大号游戏质感标题栏 */}
                 <div className="px-6 py-4 border-b bg-white/70 dark:bg-slate-900/80 backdrop-blur-sm flex items-center justify-between shrink-0">
                     <div className="flex items-center gap-3">
@@ -738,7 +740,9 @@ export function PetLotteryDialog({ isOpen, onClose }: PetLotteryDialogProps) {
 
             {/* 巨型大卡片沉浸式详情弹窗 (Card Detail Inspector) */}
             <Dialog open={!!inspectingPrize} onOpenChange={(open) => !open && setInspectingPrize(null)}>
-                <DialogContent className="max-w-md sm:rounded-3xl p-6 text-center space-y-4 border-2 border-amber-300 shadow-2xl bg-gradient-to-b from-amber-50/70 via-background to-background">
+                <DialogContent aria-describedby={undefined} className="max-w-md sm:rounded-3xl p-6 text-center space-y-4 border-2 border-amber-300 shadow-2xl bg-gradient-to-b from-amber-50/70 via-background to-background">
+                    {/* 无障碍标题：Radix 要求每个弹窗都有 DialogTitle，缺失时会 console.error（即开发模式左下角的错误角标） */}
+                    <DialogTitle className="sr-only">{inspectingPrize?.prize.name || '心愿卡详情'}</DialogTitle>
                     {inspectingPrize && (
                         <>
                             {/* 顶部标签 */}
@@ -828,7 +832,9 @@ export function PetLotteryDialog({ isOpen, onClose }: PetLotteryDialogProps) {
 
             {/* 中奖揭晓庆贺弹窗 */}
             <Dialog open={showRewardModal} onOpenChange={setShowRewardModal}>
-                <DialogContent className="max-w-md sm:rounded-3xl p-6 text-center space-y-4 border-4 border-amber-400 shadow-2xl bg-gradient-to-b from-amber-100/60 via-background to-background">
+                <DialogContent aria-describedby={undefined} className="max-w-md sm:rounded-3xl p-6 text-center space-y-4 border-4 border-amber-400 shadow-2xl bg-gradient-to-b from-amber-100/60 via-background to-background">
+                    {/* 无障碍标题：Radix 要求每个弹窗都有 DialogTitle，缺失时会 console.error（即开发模式左下角的错误角标） */}
+                    <DialogTitle className="sr-only">{wonPrize?.name ? `抽中：${wonPrize.name}` : '抽奖结果'}</DialogTitle>
                     {/* 巨幅高清心愿卡插画展台 */}
                     <div className="relative mx-auto w-36 h-36 rounded-3xl overflow-hidden shadow-2xl border-4 border-amber-300 bg-gradient-to-b from-amber-100 to-white p-3 flex items-center justify-center animate-bounce">
                         {/* eslint-disable-next-line @next/next/no-img-element */}

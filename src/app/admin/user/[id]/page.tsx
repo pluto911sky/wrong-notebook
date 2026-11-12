@@ -27,7 +27,7 @@ export default function AdminUserDetailPage() {
             const result = await apiClient.get<AdminUserDetail>(`/api/admin/users/${userId}/detail`)
             setData(result)
         } catch (error) {
-            console.error("Failed to fetch user detail", error)
+            console.warn("Failed to fetch user detail", error)
         } finally {
             setLoading(false)
         }

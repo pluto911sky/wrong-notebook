@@ -146,7 +146,7 @@ describe('Gemini Provider 响应解析', () => {
 <answer_text>测试答案</answer_text>
             `.trim();
 
-            expect(() => asPrivateProvider(provider).parseResponse(mockResponse)).toThrow('Missing critical XML tags');
+            expect(() => asPrivateProvider(provider).parseResponse(mockResponse)).toThrow('AI_RESPONSE_ERROR');
         });
     });
 });

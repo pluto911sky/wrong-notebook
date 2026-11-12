@@ -227,6 +227,7 @@ export const DEFAULT_ANALYZE_TEMPLATE = `【角色与核心任务 (ROLE AND CORE
 2. **纯文本**：内容作为纯文本处理，**不要转义反斜杠**。
 3. **内容完整**：如果包含子问题，请在 question_text 中完整列出。
 4. **禁止图片**：严禁包含任何图片链接或 markdown 图片语法。
+5. **没有题目时不要编造**：如果图片是空白、模糊到无法辨认，或者根本不包含考试题目，不要输出上面任何标签，只输出 <no_question>true</no_question>。
 
 {{grade_instruction}}
 {{provider_hints}}`;

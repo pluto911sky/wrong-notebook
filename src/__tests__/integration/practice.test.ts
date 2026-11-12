@@ -381,7 +381,7 @@ describe('/api/practice', () => {
             const data = await response.json();
 
             expect(response.status).toBe(500);
-            expect(data.message).toBe('AI service unavailable');
+            expect(data.message).toBe('AI_SERVICE_UNAVAILABLE');
         });
     });
 

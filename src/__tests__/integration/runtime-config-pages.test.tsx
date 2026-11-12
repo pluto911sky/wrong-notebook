@@ -112,15 +112,15 @@ describe('ordinary-user pages consume the safe long runtime timeout', () => {
         expectRequestTimeout('/api/reanswer');
         expect(container.querySelector('[data-testid="editor-timeout"]')?.textContent).toBe(String(configuredTimeout));
     });
-    it.each([['home', HomePage], ['notebook add', AddPage]] as const)('%s uses runtime timeout for image requests and the safety timer', async (_name, Page) => {
-        const timerSpy = vi.spyOn(globalThis, 'setTimeout');
+    // 首页原先另有一个「超时 + 10s 自动关闭遮罩」的兜底定时器，会在请求仍在进行时关掉遮罩，已移除；
+    // 现在遮罩随请求结束关闭，请求本身由 apiClient 按运行时超时中止。
+    it.each([['home', HomePage], ['notebook add', AddPage]] as const)('%s uses runtime timeout for image requests', async (_name, Page) => {
         mocks.post.mockImplementation(() => new Promise(() => {}));
         await render(Page);
         await click('[data-testid="select-fixture-image"]');
         await click('[data-testid="crop-fixture-image"]');
         expectRuntimeOnly();
         expectRequestTimeout('/api/analyze');
-        expect(timerSpy.mock.calls.some(([, delay]) => delay === configuredTimeout + 10000)).toBe(true);
     });
     it('practice uses the runtime timeout instead of falling back after admin-only settings fails', async () => {
         await render(PracticePage);

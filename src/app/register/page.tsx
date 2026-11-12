@@ -10,6 +10,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
 import { RegisterRequest } from "@/types/api";
+import { toast } from "@/components/ui/toast";
 
 export default function RegisterPage() {
     const router = useRouter();
@@ -36,7 +37,7 @@ export default function RegisterPage() {
             const data = await res.json();
             setAllowRegistration(data.allowRegistration);
         } catch (error) {
-            console.error("Failed to check registration status", error);
+            console.warn("Failed to check registration status", error);
             setAllowRegistration(true); // 默认允许
         }
     };
@@ -62,7 +63,7 @@ export default function RegisterPage() {
                 enrollmentYear: parseInt(enrollmentYear)
             });
 
-            alert(t.auth?.register?.success || 'Registration successful! Please login');
+            toast.success(t.auth?.register?.success || 'Registration successful! Please login');
             router.push("/login");
         } catch (error: any) {
             let errorMsg = error.data?.message;

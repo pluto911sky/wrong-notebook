@@ -424,7 +424,9 @@ export default function LotteryPage() {
 
             {/* 奖品大图特权详情弹窗 */}
             <Dialog open={!!selectedPrize} onOpenChange={(o) => { if (!o) setSelectedPrize(null); }}>
-                <DialogContent className="max-w-md sm:rounded-3xl p-6 text-center space-y-4 border-2 border-amber-300 shadow-2xl bg-gradient-to-b from-amber-50/70 via-background to-background">
+                <DialogContent aria-describedby={undefined} className="max-w-md sm:rounded-3xl p-6 text-center space-y-4 border-2 border-amber-300 shadow-2xl bg-gradient-to-b from-amber-50/70 via-background to-background">
+                    {/* 无障碍标题：Radix 要求每个弹窗都有 DialogTitle，缺失时会 console.error（即开发模式左下角的错误角标） */}
+                    <DialogTitle className="sr-only">{selectedPrize?.name || '奖品详情'}</DialogTitle>
                     {selectedPrize && (
                         <>
                             <div className="relative mx-auto w-40 h-40 rounded-3xl overflow-hidden shadow-2xl border-4 border-amber-300 bg-gradient-to-tr from-amber-100 via-orange-50 to-white dark:from-slate-800 dark:to-slate-700 p-3 flex items-center justify-center">

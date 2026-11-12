@@ -44,6 +44,7 @@ import { GeogebraDemo } from "@/components/geogebra-demo";
 import { parseStoredVariants, VariantMap } from "@/lib/practice-variants";
 import { recordPetErrorReviewed, recordPetPracticeSuccess } from "@/lib/pet-system";
 import { PetFeedbackDialog } from "@/components/digital-pet/pet-feedback-dialog";
+import { toast } from "@/components/ui/toast";
 
 interface KnowledgeTag {
     id: string;
@@ -152,7 +153,7 @@ export default function ErrorDetailPage() {
             setItem(data);
         } catch (error) {
             console.warn(error);
-            alert(t.common?.messages?.loadFailed || "Failed to load item");
+            toast.error(t.common?.messages?.loadFailed || "Failed to load item");
             router.push("/notebooks");
         } finally {
             setLoading(false);
@@ -207,14 +208,14 @@ export default function ErrorDetailPage() {
             if (newLevel > 0) {
                 recordPetErrorReviewed();
             }
-            alert(
+            toast.success(
                 newLevel > 0
                     ? t.common?.messages?.markMastered || "已标记掌握！算算喵获得了能量与小鱼干！"
                     : t.common?.messages?.unmarkMastered || "已取消掌握"
             );
         } catch (error) {
             console.warn(error);
-            alert(t.common?.messages?.updateFailed || "Update failed");
+            toast.error(t.common?.messages?.updateFailed || "Update failed");
         }
     };
 
@@ -226,7 +227,7 @@ export default function ErrorDetailPage() {
 
         try {
             await apiClient.delete(`/api/error-items/${item.id}/delete`);
-            alert(t.common?.messages?.deleteSuccess || "Deleted successfully");
+            toast.success(t.common?.messages?.deleteSuccess || "Deleted successfully");
             if (item.subjectId) {
                 router.push(`/notebooks/${item.subjectId}`);
             } else {
@@ -234,7 +235,7 @@ export default function ErrorDetailPage() {
             }
         } catch (error) {
             console.warn(error);
-            alert(t.common?.messages?.deleteFailed || "Delete failed");
+            toast.error(t.common?.messages?.deleteFailed || "Delete failed");
         }
     };
 
@@ -274,10 +275,10 @@ export default function ErrorDetailPage() {
 
             setIsEditingTags(false);
             await fetchItem(params.id as string);
-            alert(t.common?.messages?.tagUpdateSuccess || "Tags updated successfully!");
+            toast.success(t.common?.messages?.tagUpdateSuccess || "Tags updated successfully!");
         } catch (error) {
             console.warn("[Frontend] Error updating:", error);
-            alert(t.common?.messages?.updateFailed || "Update failed");
+            toast.error(t.common?.messages?.updateFailed || "Update failed");
         }
     };
 
@@ -305,10 +306,10 @@ export default function ErrorDetailPage() {
 
             setIsEditingMetadata(false);
             fetchItem(params.id as string);
-            alert(t.common?.messages?.metaUpdateSuccess || "Metadata updated successfully!");
+            toast.success(t.common?.messages?.metaUpdateSuccess || "Metadata updated successfully!");
         } catch (error) {
             console.warn(error);
-            alert(t.common?.messages?.updateFailed || "Update failed");
+            toast.error(t.common?.messages?.updateFailed || "Update failed");
         }
     };
 
@@ -341,10 +342,10 @@ export default function ErrorDetailPage() {
             await apiClient.put(`/api/error-items/${item?.id}`, { questionText: questionInput });
             setIsEditingQuestion(false);
             if (item) setItem({ ...item, questionText: questionInput });
-            alert(t.common?.messages?.saveSuccess || "Saved successfully");
+            toast.success(t.common?.messages?.saveSuccess || "Saved successfully");
         } catch (error) {
             console.warn(error);
-            alert(t.common?.messages?.saveFailed || "Save failed");
+            toast.error(t.common?.messages?.saveFailed || "Save failed");
         }
     };
 
@@ -375,10 +376,10 @@ export default function ErrorDetailPage() {
                     answerText: answerInput,
                 });
             }
-            alert(t.common?.messages?.saveSuccess || "Saved successfully");
+            toast.success(t.common?.messages?.saveSuccess || "Saved successfully");
         } catch (error) {
             console.warn(error);
-            alert(t.common?.messages?.saveFailed || "Save failed");
+            toast.error(t.common?.messages?.saveFailed || "Save failed");
         }
     };
 
@@ -400,10 +401,10 @@ export default function ErrorDetailPage() {
             await apiClient.put(`/api/error-items/${item?.id}`, { analysis: analysisInput });
             setIsEditingAnalysis(false);
             if (item) setItem({ ...item, analysis: analysisInput });
-            alert(t.common?.messages?.saveSuccess || "Saved successfully");
+            toast.success(t.common?.messages?.saveSuccess || "Saved successfully");
         } catch (error) {
             console.warn(error);
-            alert(t.common?.messages?.saveFailed || "Save failed");
+            toast.error(t.common?.messages?.saveFailed || "Save failed");
         }
     };
 
@@ -419,10 +420,10 @@ export default function ErrorDetailPage() {
             await apiClient.patch(`/api/error-items/${item.id}/notes`, { userNotes: notesInput });
             setItem({ ...item, userNotes: notesInput });
             setIsEditingNotes(false);
-            alert(t.common?.messages?.noteSaveSuccess || "Notes saved successfully");
+            toast.success(t.common?.messages?.noteSaveSuccess || "Notes saved successfully");
         } catch (error) {
             console.warn(error);
-            alert(t.common?.messages?.saveFailed || "Save failed");
+            toast.error(t.common?.messages?.saveFailed || "Save failed");
         }
     };
 
@@ -455,11 +456,11 @@ export default function ErrorDetailPage() {
                 {/* 顶部导航与操作栏 */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div className="flex items-center gap-3">
-                        <Link href={item.subjectId ? `/notebooks/${item.subjectId}` : "/notebooks"}>
-                            <Button variant="ghost" size="icon">
+                        <Button asChild variant="ghost" size="icon">
+                            <Link href={item.subjectId ? `/notebooks/${item.subjectId}` : "/notebooks"} aria-label="返回">
                                 <ArrowLeft className="w-4 h-4" />
-                            </Button>
-                        </Link>
+                            </Link>
+                        </Button>
                         <h1 className="text-2xl font-bold">{t.detail.title}</h1>
                         {item.subject?.name && (
                             <Badge variant="outline" className="text-sm font-medium">
@@ -469,12 +470,12 @@ export default function ErrorDetailPage() {
                     </div>
 
                     <div className="flex gap-2">
-                        <Link href={`/practice?id=${item.id}&difficulty=hard`}>
-                            <Button variant="outline" size="sm">
+                        <Button asChild variant="outline" size="sm">
+                            <Link href={`/practice?id=${item.id}&difficulty=hard`}>
                                 <RefreshCw className="mr-2 h-4 w-4" />
                                 举一反三自测
-                            </Button>
-                        </Link>
+                            </Link>
+                        </Button>
                         <Button
                             size="sm"
                             variant="default"
@@ -1133,7 +1134,7 @@ export default function ErrorDetailPage() {
                                                         await fetchItem(item.id);
                                                     }
                                                 } catch {
-                                                    alert("生成变式题遇到网络波动，请稍后再试");
+                                                    toast.error("生成变式题遇到网络波动，请稍后再试");
                                                 } finally {
                                                     setIsPregeneratingVariants(false);
                                                 }

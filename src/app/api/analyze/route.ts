@@ -5,10 +5,15 @@ import { getServerSession } from "next-auth";
 import { calculateGradeNumber, inferSubjectFromName } from "@/lib/knowledge-tags";
 import { calculateGrade } from "@/lib/grade-calculator";
 import { prisma } from "@/lib/prisma";
-import { badRequest, internalError, createErrorResponse, ErrorCode } from "@/lib/api-errors";
+import { badRequest, createErrorResponse, ErrorCode } from "@/lib/api-errors";
 import { createLogger } from "@/lib/logger";
+import { classifyAIError } from "@/lib/ai/errors";
 
 const logger = createLogger('api:analyze');
+
+// 前端会把图片压到 0.5MB 左右，这里给足余量；超出说明不是正常客户端请求
+const MAX_IMAGE_BASE64_LENGTH = 12 * 1024 * 1024;
+const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']);
 
 export async function POST(req: Request) {
     logger.info('Analyze API called');
@@ -32,9 +37,13 @@ export async function POST(req: Request) {
             subjectId
         }, 'Request received');
 
-        if (!imageBase64) {
+        if (!imageBase64 || typeof imageBase64 !== 'string') {
             logger.warn('Missing image data');
             return badRequest("Missing image data");
+        }
+        if (imageBase64.length > MAX_IMAGE_BASE64_LENGTH) {
+            logger.warn({ imageLength: imageBase64.length }, 'Image too large');
+            return badRequest("Image too large");
         }
 
         // Parse Data URL if present
@@ -45,6 +54,12 @@ export async function POST(req: Request) {
                 imageBase64 = matches[2];
                 logger.debug({ mimeType, base64Length: imageBase64.length }, 'Parsed Data URL');
             }
+        }
+        if (mimeType && !ALLOWED_MIME_TYPES.has(mimeType)) {
+            return badRequest("Unsupported image type");
+        }
+        if (language !== 'zh' && language !== 'en') {
+            language = 'zh';
         }
 
         // 先获取用户年级信息，用于动态生成 AI prompt 中的标签列表
@@ -125,32 +140,8 @@ export async function POST(req: Request) {
             stack: error.stack
         }, 'Analysis error occurred');
 
-        // 返回具体的错误类型，便于前端显示详细提示
-        let errorMessage = error.message || "Failed to analyze image";
-
-        // 识别特定错误类型
-        if (error.message && (
-            error.message === 'AI_CONNECTION_FAILED' ||
-            error.message === 'AI_RESPONSE_ERROR' ||
-            error.message.includes('AI_AUTH_ERROR') ||
-            error.message === 'AI_TIMEOUT_ERROR' ||
-            error.message === 'AI_QUOTA_EXCEEDED' ||
-            error.message === 'AI_PERMISSION_DENIED' ||
-            error.message === 'AI_NOT_FOUND' ||
-            error.message === 'AI_SERVICE_UNAVAILABLE' ||
-            error.message === 'AI_UNKNOWN_ERROR'
-        )) {
-            // 直接传递 AI Provider 定义的错误类型 (如果是 AI_AUTH_ERROR，提取出来)
-            if (error.message.includes('AI_AUTH_ERROR')) {
-                errorMessage = 'AI_AUTH_ERROR';
-            } else {
-                errorMessage = error.message;
-            }
-        } else if (error.message?.includes('Zod') || error.message?.includes('validate')) {
-            // Zod 验证错误
-            errorMessage = 'AI_RESPONSE_ERROR';
-        }
-
+        // 统一映射为 AI 错误码，前端据此显示可读提示（未知异常不再把英文原文弹给用户）
+        const errorMessage = classifyAIError(error);
         return createErrorResponse(errorMessage, 500, ErrorCode.AI_ERROR, error.message);
     }
 }

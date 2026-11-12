@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiClient } from "@/lib/api-client";
 import { TagStats, TagStatsResponse } from "@/types/api";
+import { toast } from "@/components/ui/toast";
 
 // 标签树节点类型
 interface TagTreeNode {
@@ -75,7 +76,7 @@ export default function TagsPage() {
             const data = await apiClient.get<{ tags: TagTreeNode[] }>(`/api/tags?subject=${subject}`);
             setTagsBySubject(prev => ({ ...prev, [subject]: data.tags }));
         } catch (error) {
-            console.error(`Failed to fetch ${subject} tags:`, error);
+            console.warn(`Failed to fetch ${subject} tags:`, error);
         }
     }, []);
 
@@ -93,7 +94,7 @@ export default function TagsPage() {
             }
             setCustomTags(allCustom);
         } catch (error) {
-            console.error("Failed to fetch custom tags:", error);
+            console.warn("Failed to fetch custom tags:", error);
         }
     }, []);
 
@@ -103,7 +104,7 @@ export default function TagsPage() {
             const data = await apiClient.get<TagStatsResponse>("/api/tags/stats");
             setStats(data.stats);
         } catch (error) {
-            console.error("Failed to fetch tag stats:", error);
+            console.warn("Failed to fetch tag stats:", error);
         } finally {
             setLoading(false);
         }
@@ -129,7 +130,7 @@ export default function TagsPage() {
                 setGradeOptions(grades);
                 setNewTagGrade(""); // 重置选择
             } catch (error) {
-                console.error("Failed to fetch grades:", error);
+                console.warn("Failed to fetch grades:", error);
                 setGradeOptions([]);
             }
         };
@@ -139,7 +140,7 @@ export default function TagsPage() {
     // 添加自定义标签
     const handleAddCustomTag = async () => {
         if (!newTagName.trim()) {
-            alert(t.tags?.custom?.enterName || "Please enter tag name");
+            toast.error(t.tags?.custom?.enterName || "Please enter tag name");
             return;
         }
 
@@ -154,12 +155,12 @@ export default function TagsPage() {
             // 刷新
             await fetchCustomTags();
             await fetchTags(newTagSubject);
-            alert(t.tags?.custom?.success || "Tag added successfully!");
+            toast.success(t.tags?.custom?.success || "Tag added successfully!");
         } catch (error: any) {
             if (error?.message?.includes('409')) {
-                alert(t.tags?.custom?.exists || "Tag already exists");
+                toast.error(t.tags?.custom?.exists || "Tag already exists");
             } else {
-                alert("Failed to add tag");
+                toast.error("Failed to add tag");
             }
         } finally {
             setSubmitting(false);
@@ -177,8 +178,8 @@ export default function TagsPage() {
             await fetchCustomTags();
             await fetchTags(subject);
         } catch (error) {
-            console.error("Failed to delete tag:", error);
-            alert("Failed to delete tag");
+            console.warn("Failed to delete tag:", error);
+            toast.error("Failed to delete tag");
         }
     };
 
@@ -468,11 +469,11 @@ export default function TagsPage() {
                     </p>
                 </div>
                 <div className="ml-auto flex items-center">
-                    <Link href="/">
-                        <Button variant="ghost" size="icon">
+                    <Button asChild variant="ghost" size="icon">
+                        <Link href="/" aria-label="返回首页">
                             <House className="h-5 w-5 md:h-6 md:w-6" />
-                        </Button>
-                    </Link>
+                        </Link>
+                    </Button>
                 </div>
             </div>
 

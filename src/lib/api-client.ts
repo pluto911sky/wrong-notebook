@@ -1,3 +1,5 @@
+import { CANCELLED_ERROR } from "./ai-error-message";
+
 type RequestOptions = RequestInit & {
     params?: Record<string, string>;
     timeout?: number; // 超时时间（毫秒），默认 60000
@@ -11,7 +13,7 @@ export class ApiError extends Error {
 }
 
 async function request<T>(url: string, options: RequestOptions = {}): Promise<T> {
-    const { params, headers, timeout = 60000, ...rest } = options;
+    const { params, headers, timeout = 60000, signal: externalSignal, ...rest } = options;
 
     let finalUrl = url;
     if (params) {
@@ -23,9 +25,18 @@ async function request<T>(url: string, options: RequestOptions = {}): Promise<T>
         'Content-Type': 'application/json',
     };
 
-    // 创建 AbortController 用于超时控制
+    // 内部 AbortController 同时负责超时和调用方取消（如批量识别中点「取消」）
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
+    let timedOut = false;
+    const timeoutId = setTimeout(() => {
+        timedOut = true;
+        controller.abort();
+    }, timeout);
+    const onExternalAbort = () => controller.abort();
+    if (externalSignal) {
+        if (externalSignal.aborted) controller.abort();
+        else externalSignal.addEventListener('abort', onExternalAbort, { once: true });
+    }
 
     try {
         const res = await fetch(finalUrl, {
@@ -33,17 +44,18 @@ async function request<T>(url: string, options: RequestOptions = {}): Promise<T>
                 ...defaultHeaders,
                 ...headers,
             },
-            signal: controller.signal,
             ...rest,
+            signal: controller.signal,
         });
-        clearTimeout(timeoutId);
 
         if (!res.ok) {
-            let errorData;
+            // body 只能读取一次：先取文本再尝试解析 JSON
+            const raw = await res.text();
+            let errorData: unknown = raw;
             try {
-                errorData = await res.json();
+                errorData = JSON.parse(raw);
             } catch {
-                errorData = await res.text();
+                // 非 JSON 响应，保留原文
             }
             throw new ApiError(res.status, res.statusText, errorData);
         }
@@ -56,18 +68,21 @@ async function request<T>(url: string, options: RequestOptions = {}): Promise<T>
         try {
             return await res.json();
         } catch {
-            // If JSON parse fails but response was OK, return text or empty object?
-            // For now, assume JSON APIs.
             return {} as T;
         }
     } catch (error) {
-        clearTimeout(timeoutId);
         if (error instanceof Error && error.name === 'AbortError') {
+            if (!timedOut) {
+                throw new ApiError(499, 'Request Cancelled', { message: CANCELLED_ERROR });
+            }
             throw new ApiError(408, 'Request Timeout', {
                 message: 'AI_TIMEOUT_ERROR'
             });
         }
         throw error;
+    } finally {
+        clearTimeout(timeoutId);
+        externalSignal?.removeEventListener('abort', onExternalAbort);
     }
 }
 

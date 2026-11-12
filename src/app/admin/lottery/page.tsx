@@ -21,6 +21,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { Gift, Loader2, Pencil, Plus, Trash2, Upload, X } from "lucide-react";
+import { toast } from "@/components/ui/toast";
 
 interface AdminPrize {
     id: string;
@@ -202,7 +203,7 @@ export default function AdminLotteryPage() {
             const msg = e instanceof ApiError && typeof e.data === 'object' && e.data && 'error' in e.data
                 ? String((e.data as { error?: string }).error)
                 : L.deleteFailed;
-            window.alert(msg);
+            toast.error(msg);
         }
     };
 

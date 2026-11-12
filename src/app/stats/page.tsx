@@ -26,11 +26,11 @@ export default function StatsPage() {
                     </p>
                 </div>
                 <div className="ml-auto flex items-center">
-                    <Link href="/">
-                        <Button variant="ghost" size="icon">
+                    <Button asChild variant="ghost" size="icon">
+                        <Link href="/" aria-label="返回首页">
                             <House className="h-5 w-5 md:h-6 md:w-6" />
-                        </Button>
-                    </Link>
+                        </Link>
+                    </Button>
                 </div>
             </div>
 

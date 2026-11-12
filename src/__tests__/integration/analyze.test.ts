@@ -297,7 +297,8 @@ describe('/api/analyze', () => {
             const data = await response.json();
 
             expect(response.status).toBe(500);
-            expect(data.message).toBe('Unknown error');
+            // 未知异常统一返回错误码，不再把英文原文透传给前端
+            expect(data.message).toBe('AI_UNKNOWN_ERROR');
         });
 
         it('应该标准化知识点标签', async () => {

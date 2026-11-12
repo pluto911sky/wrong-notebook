@@ -166,7 +166,7 @@ export function KnowledgeFilter({
                     setTagTree([]);
                 }
             } catch (error) {
-                console.error("Failed to load filter data:", error);
+                console.warn("Failed to load filter data:", error);
             } finally {
                 setLoading(false);
             }

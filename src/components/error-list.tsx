@@ -26,6 +26,7 @@ import { cleanMarkdown } from "@/lib/markdown-utils";
 import { Pagination } from "@/components/ui/pagination";
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants/pagination";
 import { getMistakeStatusLabel } from "@/lib/mistake-status";
+import { toast } from "@/components/ui/toast";
 
 interface ErrorListProps {
     subjectId?: string;
@@ -155,13 +156,13 @@ export function ErrorList({ subjectId, subjectName }: ErrorListProps = {}) {
             await apiClient.post("/api/error-items/batch-delete", {
                 ids: Array.from(selectedIds),
             });
-            alert(t.notebook?.batchDeleteSuccess || "Deleted successfully");
+            toast.success(t.notebook?.batchDeleteSuccess || "Deleted successfully");
             setIsSelectMode(false);
             setSelectedIds(new Set());
             fetchItems();
         } catch (error) {
-            console.error(error);
-            alert(t.common?.messages?.deleteFailed || "Delete failed");
+            console.warn(error);
+            toast.error(t.common?.messages?.deleteFailed || "Delete failed");
         } finally {
             setIsDeleting(false);
         }
@@ -222,7 +223,7 @@ export function ErrorList({ subjectId, subjectName }: ErrorListProps = {}) {
             setTotal(response.total);
             setTotalPages(response.totalPages);
         } catch (error) {
-            console.error(error);
+            console.warn(error);
         } finally {
             setLoading(false);
         }
