@@ -1,0 +1,12 @@
+6. 在计算 $114 \times 21$ 时，同学们想到了以下三种方法：
+
+| ① | ② $114 \times 21$ | ③ $114 \times 21$ |
+|---|---|---|
+| $100 \times 21 = 2100$<br>$10 \times 21 = 210$<br>$4 \times 21 = 84$<br>$2100 + 210 + 84 = 2394$ | <br>$$\begin{array}{c|ccc}\times & 100 & 10 & 4 \\\hline 20 & 2000 & 200 & 80 \\ 1 & 100 & 10 & 4 \end{array}$$<br>$2000 + 200 + 80 + 100 + 10 + 4 = 2394$ | <br>$$\begin{array}{r@{\quad}l} 114 & \\ \times \quad 21 & \\ \hline 114 & \cdots 114 \times 1 \\ 228 \quad & \cdots 114 \times 20 \\ \hline 2394 & \end{array}$$ |
+
+正确的方法有（　）种。
+
+A. 1  
+B. 2  
+C. 3  
+D. 0

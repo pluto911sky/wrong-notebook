@@ -3,7 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import remarkGfm from 'remark-gfm';
 import rehypeKatex from 'rehype-katex';
-import { normalizeMathMarkdown } from '@/lib/math-markdown';
+import { normalizeMathMarkdown, remarkTableCellFixes } from '@/lib/math-markdown';
 import 'katex/dist/katex.min.css';
 
 interface MarkdownRendererProps {
@@ -17,7 +17,7 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
     return (
         <div className={`markdown-content overflow-x-auto min-w-0 ${className}`}>
             <ReactMarkdown
-                remarkPlugins={[remarkMath, remarkGfm]}
+                remarkPlugins={[remarkMath, remarkGfm, remarkTableCellFixes]}
                 rehypePlugins={[rehypeKatex]}
                 components={{
                     // 自定义样式
