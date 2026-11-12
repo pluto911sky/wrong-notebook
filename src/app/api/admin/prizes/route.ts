@@ -7,6 +7,7 @@ import { forbidden, unauthorized, badRequest, internalError } from "@/lib/api-er
 import { createLogger } from "@/lib/logger";
 import { savePrizeImageFromDataUrl, deletePrizeImageIfUnreferenced, PrizeImageError } from "@/lib/prize-image";
 import { isPrizeStock, MAX_PRISMA_INT } from "@/lib/prize-form";
+import { computeEffectiveShares, getBlankRate } from "@/lib/lottery";
 
 const logger = createLogger('api:admin:prizes');
 
@@ -33,9 +34,9 @@ export async function GET() {
             },
         });
 
-        const totalWeight = prizes
-            .filter((p) => p.enabled && (p.stock === null || p.stock > 0))
-            .reduce((sum, p) => sum + Math.max(1, p.weight), 0);
+        // 实际概率：30% 谢谢惠顾 + 70% 按权重分给真实奖品（与抽奖逻辑一致）
+        const drawable = prizes.filter((p) => p.enabled && (p.stock === null || p.stock > 0));
+        const shares = computeEffectiveShares(drawable, getBlankRate());
 
         return NextResponse.json({
             prizes: prizes.map((p) => ({
@@ -45,10 +46,8 @@ export async function GET() {
                 imagePath: p.imagePath,
                 hasImage: !!p.imagePath,
                 weight: p.weight,
-                // 换算成百分比，避免管理员误以为 1:1:1 代表不同概率
-                probability: totalWeight > 0 && p.enabled && (p.stock === null || p.stock > 0)
-                    ? Math.round((Math.max(1, p.weight) / totalWeight) * 1000) / 10
-                    : 0,
+                // 换算成实际百分比，避免管理员误以为权重就是概率
+                probability: Math.round((shares.get(p.id) ?? 0) * 10) / 10,
                 stock: p.stock,
                 enabled: p.enabled,
                 isBlank: p.isBlank,

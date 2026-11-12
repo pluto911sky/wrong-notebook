@@ -10,7 +10,8 @@ import { savePrizeImageFromDataUrl } from '@/lib/prize-image';
 
 const state = vi.hoisted(() => ({
     session: { user: { id: 'owner', role: 'user' }, expires: '2099-01-01T00:00:00.000Z' } as Session | null,
-    config: { lottery: { enabled: true, drawsPerDay: 0 } },
+    // blankRate=0：用例需要确定性地抽中带图片的真实奖品
+    config: { lottery: { enabled: true, drawsPerDay: 0, blankRate: 0 } },
 }));
 vi.mock('next-auth', () => ({ getServerSession: vi.fn(async () => state.session) }));
 vi.mock('@/lib/auth', () => ({ authOptions: {} }));

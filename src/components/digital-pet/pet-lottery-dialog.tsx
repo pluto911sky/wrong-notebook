@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, Gift, CheckCircle, RotateCcw, Award, Heart, Trophy, ChevronRight, X, Eye, BookOpen, Layers } from "lucide-react";
 import { PetState, getPetState, consumeLotteryTicket, toggleLotteryRedeem } from "@/lib/pet-system";
+import { BLANK_PRIZE_NAME, DEFAULT_BLANK_RATE, rollBlank } from "@/lib/lottery-odds";
 
 interface PetLotteryDialogProps {
     isOpen: boolean;
@@ -117,7 +118,14 @@ export const PRIZE_CATALOG: PrizeInfo[] = [
         benefit: "额外奖励 30 分钟周末平板、电脑或游戏主机自由体验畅玩时间！",
         rule: "可在完成当天学习任务后使用，单次享受30分钟。",
         color: "#3b82f6",
-    },
+    }
+];
+
+/**
+ * 已下架的心愿卡：不再出现在转盘和卡片图鉴里，
+ * 只用于正确显示孩子卡包里以前抽到、还没兑换的旧卡片。
+ */
+const RETIRED_PRIZES: PrizeInfo[] = [
     {
         id: "p8",
         name: "🌟 免做家务偷懒券",
@@ -133,20 +141,43 @@ export const PRIZE_CATALOG: PrizeInfo[] = [
     },
 ];
 
+/** 转盘上的「谢谢惠顾」格子：落空时指针停在这里，不发卡片 */
+export const BLANK_SEGMENT: PrizeInfo = {
+    id: "blank",
+    name: BLANK_PRIZE_NAME,
+    shortTitle: BLANK_PRIZE_NAME,
+    category: "",
+    categoryColor: "",
+    icon: "🍀",
+    image: "",
+    badge: "",
+    benefit: "",
+    rule: "",
+    color: "#94a3b8",
+};
+
+/** 转盘格子 = 全部心愿卡 + 1 格谢谢惠顾 */
+const WHEEL_SEGMENTS: PrizeInfo[] = [...PRIZE_CATALOG, BLANK_SEGMENT];
+
 export function findPrizeInfo(nameOrId: string = ""): PrizeInfo {
-    const found = PRIZE_CATALOG.find(
+    const all = [...PRIZE_CATALOG, ...RETIRED_PRIZES];
+    const found = all.find(
         (p) => p.id === nameOrId || p.name === nameOrId || (nameOrId && nameOrId.includes(p.shortTitle))
     );
     if (found) return found;
-    if (nameOrId.includes("零食")) return PRIZE_CATALOG[0];
-    if (nameOrId.includes("大餐")) return PRIZE_CATALOG[1];
-    if (nameOrId.includes("零花钱")) return PRIZE_CATALOG[2];
-    if (nameOrId.includes("特权") || nameOrId.includes("愿望")) return PRIZE_CATALOG[3];
-    if (nameOrId.includes("礼物")) return PRIZE_CATALOG[4];
-    if (nameOrId.includes("出行") || nameOrId.includes("游玩") || nameOrId.includes("游乐")) return PRIZE_CATALOG[5];
-    if (nameOrId.includes("游戏")) return PRIZE_CATALOG[6];
-    if (nameOrId.includes("家务") || nameOrId.includes("偷懒")) return PRIZE_CATALOG[7];
-    return PRIZE_CATALOG[0];
+    // 兼容旧记录里名称略有差异的情况：按关键词映射到卡片 id
+    const keywordToId: [string[], string][] = [
+        [["零食"], "p1"],
+        [["大餐"], "p2"],
+        [["零花钱"], "p3"],
+        [["特权", "愿望"], "p4"],
+        [["礼物"], "p5"],
+        [["出行", "游玩", "游乐"], "p6"],
+        [["游戏"], "p7"],
+        [["家务", "偷懒"], "p8"],
+    ];
+    const hit = keywordToId.find(([words]) => words.some((w) => nameOrId.includes(w)));
+    return (hit && all.find((p) => p.id === hit[1])) || PRIZE_CATALOG[0];
 }
 
 export function getPrizeImage(name: string = ""): string {
@@ -180,15 +211,22 @@ export function PetLotteryDialog({ isOpen, onClose }: PetLotteryDialogProps) {
     const handleSpin = () => {
         if (!pet || pet.lotteryTickets <= 0 || isSpinning) return;
 
+        // 先判定是否落空（30% 谢谢惠顾），未落空再从心愿卡里等概率抽一张
+        const isBlank = rollBlank(DEFAULT_BLANK_RATE);
+        const selectedIndex = isBlank
+            ? WHEEL_SEGMENTS.length - 1
+            : Math.floor(Math.random() * PRIZE_CATALOG.length);
+        const selected = WHEEL_SEGMENTS[selectedIndex];
+
+        // 开转的同时就扣券（之前要等 3.6 秒动画结束才扣，期间关掉弹窗可以不扣券白抽）
+        if (!consumeLotteryTicket(isBlank ? null : selected.name)) return;
+        setPet(getPetState());
+
         setIsSpinning(true);
         setWonPrize(null);
 
-        // 随机抽取一个奖品
-        const selectedIndex = Math.floor(Math.random() * PRIZE_CATALOG.length);
-        const selected = PRIZE_CATALOG[selectedIndex];
-
         // 转盘旋转角度计算（6圈 + 扇区角度）
-        const segmentAngle = 360 / PRIZE_CATALOG.length;
+        const segmentAngle = 360 / WHEEL_SEGMENTS.length;
         const targetAngle = 360 * 6 - (selectedIndex * segmentAngle + segmentAngle / 2);
         const newRotation = rotation + targetAngle + (Math.random() * 16 - 8);
 
@@ -197,7 +235,6 @@ export function PetLotteryDialog({ isOpen, onClose }: PetLotteryDialogProps) {
         setTimeout(() => {
             setIsSpinning(false);
             setWonPrize(selected);
-            consumeLotteryTicket(selected.name);
             setShowRewardModal(true);
         }, 3600);
     };
@@ -299,7 +336,7 @@ export function PetLotteryDialog({ isOpen, onClose }: PetLotteryDialogProps) {
                             }`}
                         >
                             <BookOpen className="w-3.5 h-3.5" />
-                            <span>📖 8大心愿卡全图鉴</span>
+                            <span>📖 {PRIZE_CATALOG.length}大心愿卡全图鉴</span>
                         </button>
                     </div>
 
@@ -538,8 +575,8 @@ export function PetLotteryDialog({ isOpen, onClose }: PetLotteryDialogProps) {
                                             transitionDuration: isSpinning ? "3.6s" : "0s",
                                         }}
                                     >
-                                        {PRIZE_CATALOG.map((item, idx) => {
-                                            const count = PRIZE_CATALOG.length;
+                                        {WHEEL_SEGMENTS.map((item, idx) => {
+                                            const count = WHEEL_SEGMENTS.length;
                                             const rotate = (360 / count) * idx;
                                             const isEven = idx % 2 === 0;
 
@@ -558,12 +595,16 @@ export function PetLotteryDialog({ isOpen, onClose }: PetLotteryDialogProps) {
                                                         }`}
                                                     >
                                                         <div className="w-10 h-10 mb-1 rounded-xl overflow-hidden flex items-center justify-center p-1 shadow-sm bg-white/85 border border-amber-200">
-                                                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                            <img
-                                                                src={item.image}
-                                                                alt={item.name}
-                                                                className="w-full h-full object-contain"
-                                                            />
+                                                            {item.image ? (
+                                                                // eslint-disable-next-line @next/next/no-img-element
+                                                                <img
+                                                                    src={item.image}
+                                                                    alt={item.name}
+                                                                    className="w-full h-full object-contain"
+                                                                />
+                                                            ) : (
+                                                                <span className="text-xl" aria-hidden>{item.icon}</span>
+                                                            )}
                                                         </div>
                                                         <div className="text-[11px] font-black truncate max-w-[100px] px-1 drop-shadow-sm">
                                                             {item.shortTitle}
@@ -576,8 +617,8 @@ export function PetLotteryDialog({ isOpen, onClose }: PetLotteryDialogProps) {
                                         {/* 扇区分隔线 */}
                                         <svg viewBox="0 0 100 100" className="w-full h-full absolute inset-0 opacity-25 pointer-events-none">
                                             <circle cx="50" cy="50" r="48" fill="none" stroke="#f59e0b" strokeWidth="2" />
-                                            {PRIZE_CATALOG.map((_, i) => {
-                                                const angle = (i * 360) / PRIZE_CATALOG.length;
+                                            {WHEEL_SEGMENTS.map((_, i) => {
+                                                const angle = (i * 360) / WHEEL_SEGMENTS.length;
                                                 return (
                                                     <line
                                                         key={i}
@@ -623,13 +664,13 @@ export function PetLotteryDialog({ isOpen, onClose }: PetLotteryDialogProps) {
                                 </div>
                             </div>
 
-                            {/* 右侧：本期 8 大心愿大奖卡片展架 (7列) */}
+                            {/* 右侧：本期心愿大奖卡片展架 */}
                             <div className="lg:col-span-7 space-y-3 bg-white/70 dark:bg-slate-900/60 p-5 rounded-3xl border shadow-sm">
                                 <div className="flex items-center justify-between pb-2 border-b">
                                     <div className="flex items-center gap-2">
                                         <Trophy className="w-4 h-4 text-amber-500" />
                                         <h3 className="font-black text-sm text-foreground">
-                                            转盘可抽中的 8 大梦幻心愿卡
+                                            转盘可抽中的 {PRIZE_CATALOG.length} 大梦幻心愿卡
                                         </h3>
                                     </div>
                                     <span className="text-[11px] text-muted-foreground">点击卡片查看特权规则</span>
@@ -834,32 +875,42 @@ export function PetLotteryDialog({ isOpen, onClose }: PetLotteryDialogProps) {
             <Dialog open={showRewardModal} onOpenChange={setShowRewardModal}>
                 <DialogContent aria-describedby={undefined} className="max-w-md sm:rounded-3xl p-6 text-center space-y-4 border-4 border-amber-400 shadow-2xl bg-gradient-to-b from-amber-100/60 via-background to-background">
                     {/* 无障碍标题：Radix 要求每个弹窗都有 DialogTitle，缺失时会 console.error（即开发模式左下角的错误角标） */}
-                    <DialogTitle className="sr-only">{wonPrize?.name ? `抽中：${wonPrize.name}` : '抽奖结果'}</DialogTitle>
-                    {/* 巨幅高清心愿卡插画展台 */}
-                    <div className="relative mx-auto w-36 h-36 rounded-3xl overflow-hidden shadow-2xl border-4 border-amber-300 bg-gradient-to-b from-amber-100 to-white p-3 flex items-center justify-center animate-bounce">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                            src={wonPrize ? wonPrize.image : "/prizes/gift.svg"}
-                            alt={wonPrize?.name}
-                            className="w-full h-full object-contain drop-shadow"
-                        />
-                    </div>
-
-                    <div className="space-y-1.5">
-                        <Badge className="bg-gradient-to-r from-orange-500 to-amber-500 text-white font-black text-xs px-3 py-1 shadow-sm">
-                            🎊 恭喜抽中心愿大奖！
-                        </Badge>
-                        <h3 className="text-2xl font-black text-foreground pt-1 tracking-tight">
-                            {wonPrize?.name}
-                        </h3>
-                        <div className="p-3 rounded-2xl bg-orange-500/10 border border-orange-300 text-xs font-bold text-orange-950 dark:text-orange-200 leading-relaxed text-left mx-2">
-                            🎁 <strong>特权内容</strong>：{wonPrize?.benefit}
+                    <DialogTitle className="sr-only">{wonPrize?.id === BLANK_SEGMENT.id ? '谢谢惠顾' : wonPrize?.name ? `抽中：${wonPrize.name}` : '抽奖结果'}</DialogTitle>
+                    {wonPrize?.id === BLANK_SEGMENT.id ? (
+                        <div className="space-y-2 py-4">
+                            <div className="text-5xl" aria-hidden>🍀</div>
+                            <h3 className="text-2xl font-black text-foreground">谢谢惠顾</h3>
+                            <p className="text-sm text-muted-foreground">这次没有抽中心愿卡，继续闯关攒抽奖机会吧！</p>
                         </div>
-                    </div>
+                    ) : (
+                        <>
+                        {/* 巨幅高清心愿卡插画展台 */}
+                        <div className="relative mx-auto w-36 h-36 rounded-3xl overflow-hidden shadow-2xl border-4 border-amber-300 bg-gradient-to-b from-amber-100 to-white p-3 flex items-center justify-center animate-bounce">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                                src={wonPrize ? wonPrize.image : "/prizes/gift.svg"}
+                                alt={wonPrize?.name}
+                                className="w-full h-full object-contain drop-shadow"
+                            />
+                        </div>
 
-                    <div className="p-3 bg-muted/40 rounded-2xl text-xs text-muted-foreground">
-                        已存入你的<strong>「我的心愿卡包」</strong>，随时可以向爸爸妈妈出示卡片进行真实兑现！
-                    </div>
+                        <div className="space-y-1.5">
+                            <Badge className="bg-gradient-to-r from-orange-500 to-amber-500 text-white font-black text-xs px-3 py-1 shadow-sm">
+                                🎊 恭喜抽中心愿大奖！
+                            </Badge>
+                            <h3 className="text-2xl font-black text-foreground pt-1 tracking-tight">
+                                {wonPrize?.name}
+                            </h3>
+                            <div className="p-3 rounded-2xl bg-orange-500/10 border border-orange-300 text-xs font-bold text-orange-950 dark:text-orange-200 leading-relaxed text-left mx-2">
+                                🎁 <strong>特权内容</strong>：{wonPrize?.benefit}
+                            </div>
+                        </div>
+
+                        <div className="p-3 bg-muted/40 rounded-2xl text-xs text-muted-foreground">
+                            已存入你的<strong>「我的心愿卡包」</strong>，随时可以向爸爸妈妈出示卡片进行真实兑现！
+                        </div>
+                        </>
+                    )}
 
                     <div className="flex gap-2">
                         <Button

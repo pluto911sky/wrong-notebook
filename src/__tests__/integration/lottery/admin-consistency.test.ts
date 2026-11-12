@@ -11,7 +11,8 @@ import { buildPrizePayload, type PrizeForm } from '@/lib/prize-form';
 
 const state = vi.hoisted(() => ({
     session: { user: { id: 'admin', role: 'admin' }, expires: '2099-01-01T00:00:00.000Z' } as Session | null,
-    config: { lottery: { enabled: true, drawsPerDay: 0 } },
+    // blankRate=0：这些用例验证库存/记录一致性，需要确定性地抽中真实奖品
+    config: { lottery: { enabled: true, drawsPerDay: 0, blankRate: 0 } },
 }));
 vi.mock('next-auth', () => ({ getServerSession: vi.fn(async () => state.session) }));
 vi.mock('@/lib/auth', () => ({ authOptions: {} }));

@@ -115,6 +115,7 @@ model ErrorItem {
   updatedAt DateTime @updatedAt
 
   reviewSchedules ReviewSchedule[]
+  practiceRecords PracticeRecord[]
 }
 
 model ReviewSchedule {
@@ -138,7 +139,14 @@ model PracticeRecord {
   difficulty String? // "easy", "medium", "hard", "harder"
   isCorrect  Boolean?
 
+  // 举一反三闯关：这条记录属于哪道错题（旧记录为空）。
+  // 用于判断每道错题的闯关进度、当天是否已作答，防止同一题反复刷奖励。
+  errorItemId String?
+  errorItem   ErrorItem? @relation(fields: [errorItemId], references: [id], onDelete: SetNull)
+
   createdAt DateTime @default(now())
+
+  @@index([userId, errorItemId])
 }
 
 // ============================================================

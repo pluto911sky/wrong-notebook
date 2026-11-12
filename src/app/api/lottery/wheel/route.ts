@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { computeEffectiveShares, getBlankRate } from "@/lib/lottery";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { getServerSession } from "next-auth";
@@ -43,21 +44,24 @@ export async function GET() {
             },
         });
 
-        const totalWeight = prizes.reduce((sum, p) => sum + Math.max(1, p.weight), 0);
+        // 扇区大小与显示的百分比都按「实际概率」计算（30% 谢谢惠顾 + 70% 按权重分给真实奖品），
+        // 否则转盘看起来的概率与真实抽奖规则对不上
+        const shares = computeEffectiveShares(prizes, getBlankRate());
 
         return NextResponse.json({
-            wheel: prizes.map((p) => ({
-                id: p.id,
-                name: p.name,
-                weight: Math.max(1, p.weight),
-                isBlank: p.isBlank,
-                hasImage: !!p.imagePath,
-                // 前端画扇区只需要比例，直接给百分比更省事
-                share: totalWeight > 0
-                    ? Math.round((Math.max(1, p.weight) / totalWeight) * 10000) / 100
-                    : 0,
-            })),
-            totalWeight,
+            wheel: prizes.map((p) => {
+                const share = shares.get(p.id) ?? 0;
+                return {
+                    id: p.id,
+                    name: p.name,
+                    // 以万分比作为扇区权重，避免小概率奖品被 Math.max(1, …) 放大
+                    weight: Math.max(1, Math.round(share * 100)),
+                    isBlank: p.isBlank,
+                    hasImage: !!p.imagePath,
+                    share: Math.round(share * 100) / 100,
+                };
+            }),
+            totalWeight: 10000,
         });
     } catch (error) {
         logger.error({ error }, 'Error loading wheel layout');

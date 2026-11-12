@@ -11,6 +11,8 @@ const mocks = vi.hoisted(() => ({
     },
     mockPrismaPracticeRecord: {
         create: vi.fn(),
+        // 出题前会读取闯关进度；默认没有作答记录（第一关已解锁）
+        findMany: vi.fn().mockResolvedValue([]),
     },
     mockPrismaUser: {
         findUnique: vi.fn(),

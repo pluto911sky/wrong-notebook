@@ -25,6 +25,7 @@ export interface AppConfig {
     lottery?: {
         enabled?: boolean;       // 总开关，默认 true
         drawsPerDay?: number;    // 每人每天可抽次数；0 = 不限
+        blankRate?: number;      // 「谢谢惠顾」概率，默认 0.3（即 70% 中奖）
     };
     openai?: {
         instances?: OpenAIInstance[];

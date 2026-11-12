@@ -16,18 +16,13 @@ import {
     X,
     Box,
     Loader2,
-    Eye,
     EyeOff,
     ImageIcon,
     Lightbulb,
     BookOpen,
     ChevronDown,
     ChevronUp,
-    Flame,
-    Zap,
     Award,
-    Send,
-    Sparkles,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import Link from "next/link";
@@ -41,9 +36,9 @@ import { UserProfile } from "@/types/api";
 import { inferSubjectFromName } from "@/lib/knowledge-tags";
 import { NotebookSelector } from "@/components/notebook-selector";
 import { GeogebraDemo } from "@/components/geogebra-demo";
-import { parseStoredVariants, VariantMap } from "@/lib/practice-variants";
-import { recordPetErrorReviewed, recordPetPracticeSuccess } from "@/lib/pet-system";
-import { PetFeedbackDialog } from "@/components/digital-pet/pet-feedback-dialog";
+import { parseStoredVariants } from "@/lib/practice-variants";
+import { recordPetErrorReviewed } from "@/lib/pet-system";
+import { PracticeChallenge } from "@/components/practice-challenge";
 import { toast } from "@/components/ui/toast";
 
 interface KnowledgeTag {
@@ -123,15 +118,6 @@ export default function ErrorDetailPage() {
     const [showSimpleSection, setShowSimpleSection] = useState(false);
     const [showDetailedSection, setShowDetailedSection] = useState(false);
 
-    // 举一反三变式题挑战状态：默认选中【困难变式】
-    const [activeVariantTab, setActiveVariantTab] = useState<"hard" | "harder" | "medium">("hard");
-    const [variantUserAnswer, setVariantUserAnswer] = useState("");
-    const [variantSubmitted, setVariantSubmitted] = useState(false);
-    const [variantCorrect, setVariantCorrect] = useState<boolean | null>(null);
-    const [variantRewardToast, setVariantRewardToast] = useState<string | null>(null);
-    const [isPregeneratingVariants, setIsPregeneratingVariants] = useState(false);
-    const [showPetFeedback, setShowPetFeedback] = useState(false);
-    const [petLevelUpInfo, setPetLevelUpInfo] = useState<{ leveledUp: boolean; newLevel?: number } | null>(null);
 
     useEffect(() => {
         apiClient.get<UserProfile>("/api/user")
@@ -205,12 +191,13 @@ export default function ErrorDetailPage() {
         try {
             await apiClient.patch(`/api/error-items/${item.id}/mastery`, { masteryLevel: newLevel });
             setItem({ ...item, masteryLevel: newLevel });
-            if (newLevel > 0) {
-                recordPetErrorReviewed();
-            }
+            // 每道错题只在第一次标记掌握时奖励，来回切换不再重复发放
+            const reward = newLevel > 0 ? recordPetErrorReviewed(item.id) : null;
             toast.success(
                 newLevel > 0
-                    ? t.common?.messages?.markMastered || "已标记掌握！算算喵获得了能量与小鱼干！"
+                    ? reward
+                        ? t.common?.messages?.markMastered || "已标记掌握！算算喵获得了能量与小鱼干！"
+                        : "已标记掌握"
                     : t.common?.messages?.unmarkMastered || "已取消掌握"
             );
         } catch (error) {
@@ -443,13 +430,6 @@ export default function ErrorDetailPage() {
     }
 
     const briefSummary = getFallbackBriefAnalysis(item.mistakeAnalysis, item.analysis);
-    const variants: VariantMap = parseStoredVariants(item.ocrText);
-    const currentVariant =
-        variants[activeVariantTab] ||
-        variants.hard ||
-        variants.harder ||
-        variants.medium;
-
     return (
         <main className="min-h-screen bg-background">
             <div className="container mx-auto p-4 space-y-6 pb-20 max-w-4xl md:px-6 md:py-8">
@@ -471,7 +451,7 @@ export default function ErrorDetailPage() {
 
                     <div className="flex gap-2">
                         <Button asChild variant="outline" size="sm">
-                            <Link href={`/practice?id=${item.id}&difficulty=hard`}>
+                            <Link href={`/practice?id=${item.id}`}>
                                 <RefreshCw className="mr-2 h-4 w-4" />
                                 举一反三自测
                             </Link>
@@ -915,251 +895,29 @@ export default function ErrorDetailPage() {
                     )}
                 </div>
 
-                {/* 核心亮点：举一反三变式挑战（困难、挑战、类似题型，已直接备好，即点即出） */}
-                {(() => {
-                    const variants: VariantMap = parseStoredVariants(item.ocrText);
-                    const currentVariant =
-                        variants[activeVariantTab] ||
-                        variants.hard ||
-                        variants.harder ||
-                        variants.medium;
-
-                    return (
-                        <Card className="border-2 border-orange-400/40 dark:border-orange-900/50 shadow-sm bg-gradient-to-b from-orange-50/20 to-transparent">
-                            <CardHeader className="py-3 px-4 border-b bg-orange-50/40 dark:bg-orange-950/20">
-                                <div className="flex flex-row items-center justify-between gap-3 overflow-x-auto flex-nowrap">
-                                    <div className="flex items-center gap-2 flex-shrink-0">
-                                        <Award className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-                                        <CardTitle className="text-base md:text-lg font-bold">
-                                            举一反三
-                                        </CardTitle>
-                                    </div>
-                                    <div className="flex items-center gap-2 flex-shrink-0">
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setActiveVariantTab("hard");
-                                                setVariantUserAnswer("");
-                                                setVariantSubmitted(false);
-                                                setVariantCorrect(null);
-                                            }}
-                                            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                                                activeVariantTab === "hard"
-                                                    ? "bg-orange-500 text-white shadow-sm ring-2 ring-orange-400/30"
-                                                    : "bg-muted text-muted-foreground hover:text-foreground"
-                                            }`}
-                                        >
-                                            <Flame className="h-3.5 w-3.5" />
-                                            <span>困难变式</span>
-                                        </button>
-
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setActiveVariantTab("harder");
-                                                setVariantUserAnswer("");
-                                                setVariantSubmitted(false);
-                                                setVariantCorrect(null);
-                                            }}
-                                            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                                                activeVariantTab === "harder"
-                                                    ? "bg-red-600 text-white shadow-sm ring-2 ring-red-500/30"
-                                                    : "bg-muted text-muted-foreground hover:text-foreground"
-                                            }`}
-                                        >
-                                            <Zap className="h-3.5 w-3.5" />
-                                            <span>挑战压轴</span>
-                                        </button>
-
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setActiveVariantTab("medium");
-                                                setVariantUserAnswer("");
-                                                setVariantSubmitted(false);
-                                                setVariantCorrect(null);
-                                            }}
-                                            className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                                                activeVariantTab === "medium"
-                                                    ? "bg-blue-600 text-white shadow-sm ring-2 ring-blue-500/30"
-                                                    : "bg-muted text-muted-foreground hover:text-foreground"
-                                            }`}
-                                        >
-                                            <span>类似题型</span>
-                                        </button>
-                                    </div>
-                                </div>
-                            </CardHeader>
-                            <CardContent className="pt-5 space-y-4">
-                                {variantRewardToast && (
-                                    <div className="p-2.5 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-800 dark:text-amber-200 text-xs font-semibold animate-in fade-in">
-                                        {variantRewardToast}
-                                    </div>
-                                )}
-
-                                {currentVariant?.questionText ? (
-                                    <div className="space-y-4">
-                                        <div className="rounded-lg bg-card p-4 border leading-relaxed text-sm md:text-base">
-                                            <div className="text-xs font-semibold text-muted-foreground mb-2 flex items-center justify-between">
-                                                <span>
-                                                    {activeVariantTab === "hard" && "🔥 困难变式："}
-                                                    {activeVariantTab === "harder" && "⚡ 挑战压轴："}
-                                                    {activeVariantTab === "medium" && "🎯 类似题型："}
-                                                </span>
-                                                <Link
-                                                    href={`/practice?id=${item.id}&difficulty=${activeVariantTab}`}
-                                                    className="text-primary hover:underline font-normal"
-                                                >
-                                                    全屏闯关练习 ❯
-                                                </Link>
-                                            </div>
-                                            <MarkdownRenderer content={currentVariant.questionText} />
-                                        </div>
-
-                                        {/* 做题输入框 */}
-                                        <div className="space-y-3">
-                                            <div className="flex gap-2">
-                                                <Input
-                                                    placeholder="输入你的解答结果（如：21箱、840元）..."
-                                                    value={variantUserAnswer}
-                                                    onChange={(e) => setVariantUserAnswer(e.target.value)}
-                                                    disabled={variantSubmitted}
-                                                    className="text-sm h-10"
-                                                />
-                                                {!variantSubmitted ? (
-                                                    <Button
-                                                        size="sm"
-                                                        onClick={() => {
-                                                            if (!variantUserAnswer.trim() || !currentVariant) return;
-                                                            setVariantSubmitted(true);
-                                                            const norm = (s: string) => s.trim().toLowerCase().replace(/[.,;!元箱本个]/g, "");
-                                                            const u = norm(variantUserAnswer);
-                                                            const c = norm(currentVariant.answerText);
-                                                            const isMatch = u === c || (c.includes(u) && u.length > 0);
-                                                            setVariantCorrect(isMatch);
-                                                            if (isMatch) {
-                                                                const reward = recordPetPracticeSuccess(activeVariantTab);
-                                                                if (reward.leveledUp) {
-                                                                    setPetLevelUpInfo({ leveledUp: true, newLevel: reward.newLevel });
-                                                                    setVariantRewardToast(`🎊 升级啦！算算喵升至 Lv.${reward.newLevel}，获得 1 次升级抽奖机会！`);
-                                                                } else {
-                                                                    setPetLevelUpInfo({ leveledUp: false });
-                                                                    setVariantRewardToast(`🎉 答对啦！算算喵获得 +${reward.exp} 经验值，金色能量果 +${reward.fish}！`);
-                                                                }
-                                                                setTimeout(() => setVariantRewardToast(null), 5000);
-                                                            } else {
-                                                                setPetLevelUpInfo(null);
-                                                            }
-                                                            setShowPetFeedback(true);
-                                                        }}
-                                                        disabled={!variantUserAnswer.trim()}
-                                                        className="px-4 text-xs font-semibold"
-                                                    >
-                                                        <Send className="mr-1 h-3.5 w-3.5" />
-                                                        核对并喂养
-                                                    </Button>
-                                                ) : (
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        onClick={() => {
-                                                            setVariantSubmitted(false);
-                                                            setVariantUserAnswer("");
-                                                            setVariantCorrect(null);
-                                                        }}
-                                                        className="text-xs"
-                                                    >
-                                                        重做本题
-                                                    </Button>
-                                                )}
-                                            </div>
-
-                                            {variantSubmitted && (
-                                                <div className="space-y-3 pt-1 animate-in fade-in">
-                                                    <div
-                                                        className={`p-3 rounded-lg border text-xs font-semibold flex items-center gap-2 ${
-                                                            variantCorrect
-                                                                ? "bg-green-500/10 border-green-500/30 text-green-700 dark:text-green-300"
-                                                                : "bg-red-500/10 border-red-500/30 text-red-700 dark:text-red-300"
-                                                        }`}
-                                                    >
-                                                        {variantCorrect ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
-                                                        <span>
-                                                            {variantCorrect ? "完全正确！本考点的陷阱已经被你攻克！" : "结果不一致，快看看下方的关键思路与步骤："}
-                                                        </span>
-                                                    </div>
-
-                                                    <div className="grid gap-3 md:grid-cols-2 text-xs">
-                                                        <div className="rounded-lg bg-amber-500/5 border border-amber-500/20 p-3">
-                                                            <div className="font-semibold text-amber-700 dark:text-amber-400 mb-1">
-                                                                简单点拨（解题关键）
-                                                            </div>
-                                                            <div>{currentVariant.mistakeAnalysis || "考查买送优惠周期计算与余数处理。"}</div>
-                                                        </div>
-                                                        <div className="rounded-lg bg-emerald-500/5 border border-emerald-500/20 p-3">
-                                                            <div className="font-semibold text-emerald-700 dark:text-emerald-400 mb-1">
-                                                                参考答案
-                                                            </div>
-                                                            <div className="font-bold text-sm">
-                                                                <MarkdownRenderer content={currentVariant.answerText} />
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="rounded-lg bg-muted/40 border p-3 text-xs leading-relaxed">
-                                                        <div className="font-semibold mb-1 text-muted-foreground">详细步骤解析</div>
-                                                        <MarkdownRenderer content={currentVariant.analysis} />
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="text-center py-6 space-y-3">
-                                        <p className="text-xs text-muted-foreground">
-                                            {isPregeneratingVariants ? "正在为本题预生成【困难】与【挑战】变式题..." : "本题变式题正在排队生成中，也可以点击立即生成："}
-                                        </p>
-                                        <Button
-                                            size="sm"
-                                            onClick={async () => {
-                                                setIsPregeneratingVariants(true);
-                                                try {
-                                                    const res = await apiClient.post<any>("/api/practice/pregenerate", {
-                                                        errorItemId: item.id,
-                                                        questionText: item.questionText,
-                                                        subjectName: item.subject?.name || "数学",
-                                                        gradeSemester: item.gradeSemester,
-                                                    });
-                                                    if (res?.variants) {
-                                                        await fetchItem(item.id);
-                                                    }
-                                                } catch {
-                                                    toast.error("生成变式题遇到网络波动，请稍后再试");
-                                                } finally {
-                                                    setIsPregeneratingVariants(false);
-                                                }
-                                            }}
-                                            disabled={isPregeneratingVariants}
-                                            className="text-xs"
-                                        >
-                                            {isPregeneratingVariants ? (
-                                                <>
-                                                    <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
-                                                    正在极速生成中...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Sparkles className="mr-1 h-3.5 w-3.5 text-amber-300" />
-                                                    ⚡ 一键备好变式题（困难 & 挑战）
-                                                </>
-                                            )}
-                                        </Button>
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
-                    );
-                })()}
+                {/* 举一反三闯关：类似题型 → 困难模式 → 挑战压轴，规则与练习页一致（共用组件） */}
+                <Card className="border-2 border-orange-400/40 dark:border-orange-900/50 shadow-sm">
+                    <CardHeader className="py-3 px-4 border-b bg-orange-50/40 dark:bg-orange-950/20">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                                <Award className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                                <CardTitle className="text-base md:text-lg font-bold">举一反三闯关</CardTitle>
+                            </div>
+                            <Link href={`/practice?id=${item.id}`} className="text-sm text-primary hover:underline">
+                                全屏闯关练习 ❯
+                            </Link>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="pt-5">
+                        <PracticeChallenge
+                            key={item.id}
+                            errorItemId={item.id}
+                            initialVariants={parseStoredVariants(item.ocrText)}
+                            compact
+                            onMastered={() => fetchItem(item.id)}
+                        />
+                    </CardContent>
+                </Card>
 
                 {/* 第三部分：保留【GeoGebra 动态演示】与【笔记答案】 */}
                 <div className="space-y-6">
@@ -1278,27 +1036,6 @@ export default function ErrorDetailPage() {
                     </div>
                 </div>
             )}
-            {/* 伴学电子宠物做题全页面反馈弹窗（做对赞美加持 / 做错哭泣鼓励） */}
-            <PetFeedbackDialog
-                isOpen={showPetFeedback}
-                onClose={() => setShowPetFeedback(false)}
-                isCorrect={Boolean(variantCorrect)}
-                difficulty={activeVariantTab}
-                userAnswer={variantUserAnswer}
-                correctAnswer={currentVariant?.answerText || ""}
-                onRetry={() => {
-                    setVariantSubmitted(false);
-                    setVariantUserAnswer("");
-                    setVariantCorrect(null);
-                }}
-                onViewDetail={() => {
-                    setVariantSubmitted(true);
-                }}
-                expGained={activeVariantTab === "harder" ? 60 : activeVariantTab === "hard" ? 35 : 15}
-                fruitGained={activeVariantTab === "harder" ? 3 : activeVariantTab === "hard" ? 2 : 1}
-                leveledUp={petLevelUpInfo?.leveledUp}
-                newLevel={petLevelUpInfo?.newLevel}
-            />
         </main>
     );
 }

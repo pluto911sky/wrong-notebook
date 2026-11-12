@@ -2,9 +2,10 @@
  * 抽奖核心逻辑（独立功能，不与错题、积分挂钩）
  *
  * 设计要点：
- *  1. 加权随机：每条奖品有相对权重 weight，越大越容易抽中。
- *     必须存在至少一条「谢谢参与」（isBlank=true）作为未中奖落点，
- *     否则所有概率之和为 1，奖品一定会被抽空。
+ *  1. 两段式抽奖：先按 blankRate（默认 30%）判定是否「谢谢惠顾」，
+ *     未落空再在真实奖品（isBlank=false）里按权重 weight 抽取。
+ *     这样中奖率固定为 1 - blankRate，不受管理员配置的权重影响；
+ *     之前空奖完全靠权重，「谢谢参与」被停用后变成了 100% 中奖。
  *  2. 库存扣减用「条件更新 + 影响行数判断」：
  *        updateMany({ where: { id, stock: { gt: 0 } }, data: { stock: { decrement: 1 } } })
  *     若 count === 0，说明被并发请求抽走了，需要重抽。
@@ -13,6 +14,8 @@
  */
 import { prisma } from './prisma';
 import { getAppConfig } from './config';
+import { BLANK_PRIZE_NAME, normalizeBlankRate, rollBlank } from './lottery-odds';
+import type { Prisma } from '@prisma/client';
 
 /** 每天可抽次数：0 表示不限 */
 export function getDrawsPerDay(): number {
@@ -20,6 +23,56 @@ export function getDrawsPerDay(): number {
     const n = cfg.lottery?.drawsPerDay;
     if (typeof n !== 'number' || Number.isNaN(n) || n < 0) return 1; // 默认每天 1 次
     return Math.floor(n);
+}
+
+/**
+ * 每个奖品的实际中奖概率（百分比）：
+ * 空奖平分 blankRate，真实奖品按权重平分剩下的 1 - blankRate。
+ * 没有真实奖品时空奖为 100%；没有启用的空奖时，落空概率仍存在（抽奖时会自动补建「谢谢惠顾」）。
+ */
+export function computeEffectiveShares(
+    prizes: { id: string; weight: number; isBlank: boolean }[],
+    blankRate: number
+): Map<string, number> {
+    const real = prizes.filter((p) => !p.isBlank);
+    const blank = prizes.filter((p) => p.isBlank);
+    const sum = (list: typeof prizes) => list.reduce((acc, p) => acc + Math.max(1, p.weight), 0);
+    const realTotal = sum(real);
+    const blankTotal = sum(blank);
+    const blankPart = real.length === 0 ? 1 : blankRate;
+
+    const shares = new Map<string, number>();
+    for (const p of real) shares.set(p.id, ((1 - blankPart) * Math.max(1, p.weight)) / realTotal * 100);
+    for (const p of blank) shares.set(p.id, (blankPart * Math.max(1, p.weight)) / blankTotal * 100);
+    return shares;
+}
+
+/** 「谢谢惠顾」概率，默认 30% */
+export function getBlankRate(): number {
+    return normalizeBlankRate(getAppConfig().lottery?.blankRate);
+}
+
+/**
+ * 取得「谢谢惠顾」奖品（每次落空都要写一条指向它的抽奖记录）。
+ * 优先用已启用的空奖；没有时把已有的「谢谢参与/谢谢惠顾」空奖重新启用，再没有就新建一条。
+ */
+async function ensureBlankPrize(tx: Prisma.TransactionClient) {
+    const enabled = await tx.prize.findFirst({
+        where: { isBlank: true, enabled: true },
+        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+    });
+    if (enabled) return enabled;
+
+    const existing = await tx.prize.findFirst({
+        where: { isBlank: true, name: { startsWith: '谢谢' } },
+        orderBy: { createdAt: 'asc' },
+    });
+    if (existing) {
+        return tx.prize.update({ where: { id: existing.id }, data: { enabled: true } });
+    }
+    return tx.prize.create({
+        data: { name: BLANK_PRIZE_NAME, isBlank: true, weight: 1, enabled: true, sortOrder: 999 },
+    });
 }
 
 export function isLotteryEnabled(): boolean {
@@ -154,20 +207,52 @@ async function drawOnceInTransaction(userId: string): Promise<DrawResult> {
             }
         }
 
-        // ② 取候选池
-        let pool = await tx.prize.findMany({
+        // ② 取候选池：真实奖品与空奖分开
+        const candidates = await tx.prize.findMany({
             where: {
                 enabled: true,
                 OR: [{ stock: null }, { stock: { gt: 0 } }],
             },
             orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
         });
+        let pool = candidates.filter((p) => !p.isBlank);
+        const blankPool = candidates.filter((p) => p.isBlank);
 
-        if (pool.length === 0) {
+        if (candidates.length === 0) {
             throw new DrawError('no_prizes', '管理员还没有配置可抽的奖品');
         }
 
-        // ③ 加权随机 + 条件扣库存
+        const writeRecord = async (prize: typeof candidates[number]) => {
+            const record = await tx.drawRecord.create({
+                data: {
+                    userId,
+                    prizeId: prize.id,
+                    prizeName: prize.name,
+                    prizeImagePath: prize.imagePath,
+                },
+            });
+            return {
+                prizeId: prize.id,
+                prizeName: prize.name,
+                prizeDescription: prize.description,
+                prizeImagePath: prize.imagePath,
+                isBlank: prize.isBlank,
+                recordId: record.id,
+                stockLeft: prize.stock === null ? null : prize.stock - 1,
+            };
+        };
+
+        const drawBlank = async () => {
+            const blank = weightedPick(blankPool) ?? await ensureBlankPrize(tx);
+            return writeRecord({ ...blank, stock: null });
+        };
+
+        // ③ 先判定是否落空（默认 30%）；没有真实奖品可抽时也只能落空
+        if (pool.length === 0 || rollBlank(getBlankRate())) {
+            return drawBlank();
+        }
+
+        // ④ 在真实奖品里加权随机 + 条件扣库存
         for (let attempt = 0; attempt < MAX_RETRY; attempt++) {
             const picked = weightedPick(pool);
             if (!picked) break;
@@ -186,29 +271,14 @@ async function drawOnceInTransaction(userId: string): Promise<DrawResult> {
                 }
             }
 
-            // ④ 写记录（含快照）
-            const record = await tx.drawRecord.create({
-                data: {
-                    userId,
-                    prizeId: picked.id,
-                    prizeName: picked.name,
-                    prizeImagePath: picked.imagePath,
-                },
-            });
-
-            const stockLeft = picked.stock === null ? null : picked.stock - 1;
-
-            return {
-                prizeId: picked.id,
-                prizeName: picked.name,
-                prizeDescription: picked.description,
-                prizeImagePath: picked.imagePath,
-                isBlank: picked.isBlank,
-                recordId: record.id,
-                stockLeft,
-            };
+            // ⑤ 写记录（含快照）
+            return writeRecord(picked);
         }
 
+        // 限量奖品恰好被并发抽完：本次按落空处理
+        if (pool.length === 0) {
+            return drawBlank();
+        }
         throw new DrawError('no_stock', '奖品刚刚被抽完了，请稍后再试');
     });
 }

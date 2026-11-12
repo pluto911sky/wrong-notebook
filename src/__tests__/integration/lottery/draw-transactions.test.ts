@@ -4,7 +4,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 import { Prisma } from '@prisma/client';
 import { createSqliteFixture, seedLotteryUsers, type SqliteFixture } from './sqlite-fixture';
 
-const config = vi.hoisted(() => ({ lottery: { enabled: true, drawsPerDay: 1 } }));
+// blankRate=0：这些用例验证事务与库存，需要确定性地抽中真实奖品
+const config = vi.hoisted(() => ({ lottery: { enabled: true, drawsPerDay: 1, blankRate: 0 } as { enabled: boolean; drawsPerDay: number; blankRate: number } }));
 vi.mock('@/lib/config', () => ({ getAppConfig: () => config }));
 
 let fixture: SqliteFixture;
@@ -30,7 +31,7 @@ beforeAll(async () => {
 
 afterAll(async () => { await fixture?.cleanup(); });
 beforeEach(async () => {
-    config.lottery = { enabled: true, drawsPerDay: 1 };
+    config.lottery = { enabled: true, drawsPerDay: 1, blankRate: 0 };
     await fixture.client.drawRecord.deleteMany();
     await fixture.client.prize.deleteMany();
     vi.spyOn(Math, 'random').mockReturnValue(0);

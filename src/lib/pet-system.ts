@@ -31,6 +31,10 @@ export interface PetState {
     lotteryTickets: number; // 剩余抽奖次数（每升一级 +1 次）
     lotteryHistory: LotteryRecord[]; // 中奖愿望卡包历史
     lastActiveDate: string;
+    /** 已发过奖励的闯关（"错题id:难度"），同一关只奖励一次，防止反复刷 */
+    rewardedPracticeKeys?: string[];
+    /** 已发过「标记掌握」奖励的错题 id，来回切换掌握状态不再重复奖励 */
+    rewardedMasteryIds?: string[];
 }
 
 const STORAGE_KEY = "wrong_notebook_study_pet_v2";
@@ -132,15 +136,17 @@ export function addExpToPet(
 /**
  * 孩子完成并做对一道变式题时调用：奖励经验与食物，触发升级与抽奖券发放
  */
-export function recordPetPracticeSuccess(difficulty: string): {
+export function recordPetPracticeSuccess(difficulty: string, rewardKey: string): {
     exp: number;
     fish: number;
     leveledUp: boolean;
     newLevel: number;
     newTickets: number;
     lotteryTickets: number;
-} {
+} | null {
     const current = getPetState();
+    // 同一道错题的同一关只奖励一次（服务端已限制，这里再兜一层，防止重复调用）
+    if (current.rewardedPracticeKeys?.includes(rewardKey)) return null;
     let expGained = 15;
     let fruitGained = 1;
 
@@ -165,6 +171,7 @@ export function recordPetPracticeSuccess(difficulty: string): {
             ...updatedState.inventory,
             energyFruit: updatedState.inventory.energyFruit + fruitGained,
         },
+        rewardedPracticeKeys: [...(updatedState.rewardedPracticeKeys || []), rewardKey],
     };
 
     savePetState(finalState);
@@ -181,8 +188,10 @@ export function recordPetPracticeSuccess(difficulty: string): {
 /**
  * 孩子复习或标记错题已掌握时调用
  */
-export function recordPetErrorReviewed(): { leveledUp: boolean; newLevel: number; newTickets: number } {
+export function recordPetErrorReviewed(errorItemId: string): { leveledUp: boolean; newLevel: number; newTickets: number } | null {
     const current = getPetState();
+    // 每道错题只在第一次标记掌握时奖励；之前来回切换「已掌握/取消」可以无限刷经验
+    if (current.rewardedMasteryIds?.includes(errorItemId)) return null;
     const { state: updatedState, leveledUp, newTickets, newLevel } = addExpToPet(current, 20);
     const finalState: PetState = {
         ...updatedState,
@@ -193,6 +202,7 @@ export function recordPetErrorReviewed(): { leveledUp: boolean; newLevel: number
             ...updatedState.inventory,
             fishCan: updatedState.inventory.fishCan + 1,
         },
+        rewardedMasteryIds: [...(updatedState.rewardedMasteryIds || []), errorItemId],
     };
     savePetState(finalState);
     return { leveledUp, newLevel, newTickets };
@@ -201,9 +211,15 @@ export function recordPetErrorReviewed(): { leveledUp: boolean; newLevel: number
 /**
  * 消耗 1 次抽奖机会，并将中奖愿望存入历史记录
  */
-export function consumeLotteryTicket(prizeName: string): boolean {
+export function consumeLotteryTicket(prizeName: string | null): boolean {
     const current = getPetState();
     if (current.lotteryTickets <= 0) return false;
+
+    // 谢谢惠顾：照样消耗一次机会，但不往卡包里加卡片
+    if (prizeName === null) {
+        savePetState({ ...current, lotteryTickets: Math.max(0, current.lotteryTickets - 1) });
+        return true;
+    }
 
     const newRecord: LotteryRecord = {
         id: "draw_" + Date.now() + "_" + Math.random().toString(36).substring(2, 6),
