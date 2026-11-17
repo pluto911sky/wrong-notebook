@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "举一反三闯关",
+  "navigationBarBackgroundColor": "#F3F6FD",
+  "usingComponents": {
+    "study-content": "/components/study-content/study-content"
+  }
+}

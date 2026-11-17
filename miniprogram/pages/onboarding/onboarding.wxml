@@ -1,0 +1,24 @@
+<view class="page-shell onboard-shell {{reduceTransparency ? 'reduce-transparency' : ''}}">
+  <island-toast toast="{{islandToast}}" reduceTransparency="{{reduceTransparency}}" />
+
+  <view class="onboard-step">完善信息</view>
+  <view class="onboard-title">这是谁的学习台？</view>
+  <view class="onboard-sub">写上名字，首页会显示「名字的学习台」。以后可以在设置里修改。</view>
+
+  <view class="card onboard-card">
+    <input
+      class="onboard-input"
+      value="{{name}}"
+      placeholder="例如：欣欣"
+      maxlength="{{maxLength}}"
+      focus
+      confirm-type="done"
+      bindinput="onNameInput"
+      bindconfirm="submit"
+    />
+    <view class="onboard-preview">{{name || '名字'}}的学习台</view>
+    <view wx:if="{{errorMessage}}" class="onboard-error">{{errorMessage}}</view>
+  </view>
+
+  <button class="onboard-primary" loading="{{saving}}" disabled="{{saving}}" bindtap="submit">进入学习台</button>
+</view>

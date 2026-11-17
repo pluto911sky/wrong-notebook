@@ -1,0 +1,100 @@
+<view class="page-shell {{reduceTransparency ? 'reduce-transparency' : ''}}">
+  <island-toast toast="{{islandToast}}" reduceTransparency="{{reduceTransparency}}" />
+
+  <view class="brand-banner">
+    <view class="brand-title">错题本</view>
+    <view class="brand-subtitle">
+      {{captureMode === 'photo' ? '登录后继续拍照录题' : (captureMode === 'text' ? '登录后继续文字录题' : '登录后继续')}}
+    </view>
+  </view>
+
+  <!-- 微信一键登录主卡片 -->
+  <view class="card auth-card">
+    <view class="error-box" wx:if="{{errorMessage}}">{{errorMessage}}</view>
+
+    <button
+      class="primary-button wx-login-btn"
+      loading="{{wxSubmitting}}"
+      disabled="{{wxSubmitting || submitting}}"
+      bindtap="wechatQuickLogin"
+    >
+      微信登录
+    </button>
+
+    <view class="privacy-row" bindtap="togglePrivacyAgree">
+      <view class="privacy-check {{privacyAgreed ? 'checked' : ''}}">
+        {{privacyAgreed ? '✓' : ''}}
+      </view>
+      <view class="privacy-text">
+        我已阅读并同意
+        <text class="privacy-link" catchtap="openPrivacyDoc">《用户隐私保护指引》</text>
+      </view>
+    </view>
+
+    <block wx:if="{{!isCloudMode}}">
+      <view class="email-toggle-row" bindtap="toggleEmailForm">
+        <text>使用邮箱登录或注册</text>
+        <text class="email-toggle-arrow">{{showEmailForm ? '收起 ▴' : '展开 ▾'}}</text>
+      </view>
+
+      <view class="email-form-wrap" wx:if="{{showEmailForm}}">
+        <view class="auth-tabs">
+          <view
+            class="auth-tab {{mode === 'login' ? 'tab-active' : ''}}"
+            data-mode="login"
+            bindtap="switchMode"
+          >
+            邮箱登录
+          </view>
+          <view
+            class="auth-tab {{mode === 'register' ? 'tab-active' : ''}}"
+            data-mode="register"
+            bindtap="switchMode"
+          >
+            新用户注册
+          </view>
+        </view>
+
+        <view class="field" wx:if="{{mode === 'register'}}">
+          <text class="label">昵称</text>
+          <input class="input" value="{{name}}" placeholder="请输入同学昵称，例如：小明" bindinput="onNameInput" />
+        </view>
+
+        <view class="field">
+          <text class="label">邮箱账号</text>
+          <input class="input" value="{{email}}" placeholder="请输入邮箱账号" bindinput="onEmailInput" />
+        </view>
+
+        <view class="field">
+          <text class="label">密码</text>
+          <input class="input" password value="{{password}}" placeholder="请输入至少 6 位密码" bindinput="onPasswordInput" />
+        </view>
+
+        <button
+          class="secondary-button"
+          loading="{{submitting}}"
+          disabled="{{submitting || wxSubmitting}}"
+          bindtap="submit"
+        >
+          {{mode === 'login' ? '使用邮箱登录' : '注册并登录'}}
+        </button>
+      </view>
+    </block>
+  </view>
+
+  <view class="card server-card" wx:if="{{!isCloudMode}}">
+    <view class="server-toggle" bindtap="toggleServerConfig">
+      <view>
+        <text class="server-title">开发者服务器配置</text>
+        <text class="server-current">{{baseUrl}}</text>
+      </view>
+      <text class="server-arrow">{{showServerConfig ? '收起 ▴' : '修改 ▾'}}</text>
+    </view>
+    <view class="server-body" wx:if="{{showServerConfig}}">
+      <input class="input" value="{{baseUrl}}" placeholder="http://localhost:3333" bindinput="onBaseUrlInput" />
+      <view class="helper-text">
+        联调提示：本地开发可在微信开发者工具右上角「详情 → 本地设置」勾选「不校验合法域名」；正式上线需配置 HTTPS 域名。
+      </view>
+    </view>
+  </view>
+</view>

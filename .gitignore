@@ -89,3 +89,8 @@ upload_test_output*.txt
 /.smoke.js
 /.diag-ipad.js
 /scripts/cf-url-watch.ps1
+
+# WeChat development workspace
+/cloudfunctions/*/node_modules/
+/miniprogram/project.private.config.json
+/miniprogram/.workbuddy/

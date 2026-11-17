@@ -1,0 +1,53 @@
+<view class="challenge">
+  <view class="step-track" aria-label="闯关进度">
+    <view wx:for="{{rounds}}" wx:key="key"
+      class="step step-{{item.key}} {{!finished && index === idx && !loading && !loadError ? 'step-current' : ''}} {{idx < progress ? 'step-passed' : ''}}"
+      wx:for-index="idx">
+      <text class="step-number">{{idx < progress ? '✓' : idx + 1}}</text>
+      <text>{{item.label}}</text>
+    </view>
+  </view>
+
+  <view wx:if="{{loading}}" class="challenge-panel centered">
+    <text>正在准备练习…</text>
+  </view>
+  <view wx:elif="{{loadError}}" class="challenge-panel centered">
+    <text>{{loadError}}</text>
+    <button class="primary-button challenge-button" bindtap="loadPractice">重试</button>
+  </view>
+  <view wx:elif="{{finished}}" class="challenge-panel centered">
+    <text class="question-title">三关全通</text>
+    <text class="reward">宠物经验 +30</text>
+    <button class="primary-button challenge-button" bindtap="goBack">返回错题</button>
+    <button class="quiet-button" bindtap="replay">重练</button>
+  </view>
+  <block wx:else>
+    <view class="challenge-panel">
+      <view class="question-heading">
+        <text class="question-title">{{rounds[index].title}}</text>
+        <text wx:if="{{index >= progress}}" class="reward">+{{rounds[index].experience}} 经验</text>
+      </view>
+      <view class="question"><study-content content="{{question}}" /></view>
+    </view>
+
+    <view wx:if="{{!result}}" class="answer-area">
+      <textarea value="{{answer}}" class="answer-field" placeholder="输入最终答案" maxlength="500"
+        auto-height bindinput="onAnswerInput" disabled="{{submitting}}" aria-label="最终答案" />
+      <view wx:if="{{feedback}}" class="answer-feedback" aria-live="polite">{{feedback}}</view>
+      <button class="primary-button challenge-button" loading="{{submitting}}" disabled="{{submitting || !answer}}"
+        bindtap="submitAnswer">提交答案</button>
+    </view>
+    <view wx:else class="answer-area">
+      <view class="challenge-panel result-panel">
+        <view class="question-heading">
+          <text class="question-title">答对了</text>
+          <text wx:if="{{result.experience}}" class="reward">宠物经验 +{{result.experience}}</text>
+        </view>
+        <view class="result-text">参考答案：<study-content content="{{result.answerText}}" /></view>
+        <button class="quiet-button" bindtap="toggleSolution">{{showSolution ? '收起解析' : '看解析'}}</button>
+        <view wx:if="{{showSolution}}" class="result-text"><study-content content="{{result.analysis}}" /></view>
+      </view>
+      <button class="primary-button challenge-button" bindtap="advance">{{index < 2 ? '进入下一关' : '完成'}}</button>
+    </view>
+  </block>
+</view>

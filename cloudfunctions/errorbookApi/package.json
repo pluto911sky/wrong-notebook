@@ -1,0 +1,11 @@
+{
+  "name": "errorbook-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "智能错题本个人主体微信云开发云函数（隔离 eb_* 集合）",
+  "main": "index.js",
+  "dependencies": {
+    "tencentcloud-sdk-nodejs-ocr": "4.1.344",
+    "wx-server-sdk": "4.0.2"
+  }
+}

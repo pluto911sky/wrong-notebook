@@ -1,0 +1,163 @@
+<view class="page-shell index-shell {{!loggedIn ? 'index-onboarding' : ''}} {{loggedIn && viewState === 'ready' && recentItems.length > 0 ? 'has-recent' : ''}} {{reduceTransparency ? 'reduce-transparency' : ''}}">
+  <island-toast toast="{{islandToast}}" reduceTransparency="{{reduceTransparency}}" />
+
+  <view class="home-first-screen">
+    <!-- 顶部栏：已登录显示学习台与额度，未登录显示品牌胶囊与设置入口 -->
+    <view wx:if="{{loggedIn}}" class="header-row">
+      <view class="header-left">
+        <view class="greeting-title">{{userName}}的学习台</view>
+        <view wx:if="{{quotaSummary}}" class="quota-pill" bindtap="goProfile">
+          <text class="quota-dot {{quotaExhausted ? 'quota-dot-warn' : ''}}"></text>
+          <text>{{quotaSummary}}</text>
+        </view>
+      </view>
+      <button size="mini" class="profile-button" bindtap="goProfile">设置</button>
+    </view>
+
+    <view wx:else class="guest-header-row">
+      <view class="brand-pill">
+        <image class="brand-pill-icon" src="/assets/miniprogram-avatar.png" mode="aspectFill" />
+        <view class="brand-pill-text">
+          <text class="brand-pill-name">错题本</text>
+        </view>
+      </view>
+      <button size="mini" class="profile-button" bindtap="goProfile">设置</button>
+    </view>
+
+    <view wx:if="{{!loggedIn}}" class="onboarding-wrap">
+      <view class="onboarding-intro">
+        <view class="onboarding-title">欢迎来到错题本</view>
+        <view class="onboarding-sub">
+          拍下错题，AI 帮你解析，伴学精灵陪你一起攻克。
+        </view>
+      </view>
+
+      <view class="onboarding-pets">
+        <view class="pet-roster-row">
+          <view class="pet-roster-item">
+            <image class="roster-avatar" src="/assets/pets/cat.jpg" mode="aspectFill" />
+            <text class="roster-name">算算喵</text>
+          </view>
+          <view class="pet-roster-item">
+            <image class="roster-avatar" src="/assets/pets/fox.jpg" mode="aspectFill" />
+            <text class="roster-name">逻辑狐</text>
+          </view>
+          <view class="pet-roster-item">
+            <image class="roster-avatar" src="/assets/pets/dragon.jpg" mode="aspectFill" />
+            <text class="roster-name">学霸龙</text>
+          </view>
+          <view class="pet-roster-item">
+            <image class="roster-avatar" src="/assets/pets/owl.jpg" mode="aspectFill" />
+            <text class="roster-name">博士鸮</text>
+          </view>
+          <view class="pet-roster-item">
+            <image class="roster-avatar" src="/assets/pets/bunny.jpg" mode="aspectFill" />
+            <text class="roster-name">元气兔</text>
+          </view>
+        </view>
+      </view>
+      <view class="onboarding-actions">
+        <button class="onboarding-primary" bindtap="goLogin">微信登录</button>
+        <button size="mini" class="onboarding-privacy" bindtap="goPrivacy">隐私指引</button>
+      </view>
+    </view>
+
+    <view wx:else class="home-dashboard">
+      <view class="card review-hero-card">
+        <view class="review-heading">
+          {{masteryState === 'ready' && totalCount > 0 && unmasteredCount === 0 ? '阶段目标达成' : '阶段目标'}}
+        </view>
+        <view wx:if="{{masteryState === 'loading'}}" class="review-status">正在加载进度…</view>
+        <view wx:elif="{{masteryState === 'error'}}" class="review-status">
+          进度暂不可用
+          <button size="mini" class="progress-retry" bindtap="loadRecent">重试</button>
+        </view>
+        <view class="hero-stats-row">
+          <view class="hero-stat">
+            <text class="stat-num stat-todo">{{masteryState === 'ready' ? unmasteredCount : '—'}}</text>
+            <text class="stat-label">待攻克</text>
+          </view>
+          <view class="hero-stat">
+            <text class="stat-num stat-done">{{masteryState === 'ready' ? masteredCount : '—'}}</text>
+            <text class="stat-label">已掌握</text>
+          </view>
+          <view class="hero-stat">
+            <text class="stat-num">{{viewState === 'ready' ? totalCount : '—'}}</text>
+            <text class="stat-label">全部错题</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="capture-section">
+        <button class="capture-entry" bindtap="goCapture">录入错题</button>
+      </view>
+
+      <!-- 伴学宠物精灵快捷胶囊 -->
+      <view
+        wx:if="{{pet && petSpecies}}"
+        class="pet-banner-card"
+        bindtap="goPet"
+      >
+        <image class="pet-mini-avatar" src="{{petSpecies.avatar}}" mode="aspectFill" />
+        <view class="pet-banner-mid">
+          <view class="pet-banner-top">
+            <text class="pet-banner-name">{{pet.name}}</text>
+            <text class="pet-banner-lv">Lv.{{pet.level}} · {{pet.currentTitle}}</text>
+          </view>
+          <view class="pet-mini-track">
+            <view class="pet-mini-fill" style="width: {{petExpPercent}}%; background: {{petSpecies.accentColor}};"></view>
+          </view>
+          <view class="pet-banner-sub">
+            {{pet.hasChosenPet ? ('心情 ' + (pet.mood || 80) + '% · 🐟 ×' + ((pet.inventory && pet.inventory.fishCan) || 0)) : '领养宠物'}}
+          </view>
+        </view>
+        <view class="pet-banner-cta">
+          {{pet.lotteryTickets > 0 ? '🎟️ 抽心愿(' + pet.lotteryTickets + ')' : (pet.hasChosenPet ? '精灵屋 ›' : '领养 ›')}}
+        </view>
+      </view>
+
+    </view>
+  </view>
+
+  <!-- 最近录入列表 -->
+  <view wx:if="{{loggedIn && viewState === 'ready' && recentItems.length > 0}}" class="recent-section">
+    <view class="section-header">
+      <text class="section-heading">最近录入</text>
+      <button size="mini" class="section-all-link" bindtap="goList">全部 {{totalCount}} 题 ›</button>
+    </view>
+
+    <view class="priority-list">
+      <view
+        wx:for="{{recentItems}}"
+        wx:key="id"
+        class="priority-item {{item.mastered ? 'item-mastered' : 'item-todo'}}"
+        data-id="{{item.id}}"
+        bindtap="goDetail"
+      >
+        <view class="priority-meta">
+          <view class="status-dot {{item.mastered ? 'dot-done' : 'dot-todo'}}"></view>
+          <text class="priority-subject">{{item.subjectName}} · {{item.createdText}}</text>
+          <text class="priority-right {{item.mastered || item.hasAiAnalysis ? 'status-ai' : 'status-wait'}}">
+            {{item.mastered ? '已掌握' : (item.hasAiAnalysis ? '已解析' : '未解析')}}
+          </text>
+        </view>
+        <view class="priority-brief">{{item.brief}}</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="floating-nav-dock">
+    <view class="nav-dock-item" bindtap="goList">
+      <text class="nav-dock-icon">📚</text>
+      <text class="nav-dock-label">错题本</text>
+    </view>
+    <view class="nav-dock-item nav-dock-cta" bindtap="goHome">
+      <text class="nav-dock-icon">📷</text>
+      <text class="nav-dock-label">拍一题</text>
+    </view>
+    <view class="nav-dock-item" bindtap="goPet">
+      <text class="nav-dock-icon">🐾</text>
+      <text class="nav-dock-label">小精灵</text>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,10 @@
+{
+  "name": "cloudbase_auth",
+  "version": "1.0.0",
+  "private": true,
+  "description": "云开发跨 AppID 环境共享鉴权函数",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "4.0.2"
+  }
+}

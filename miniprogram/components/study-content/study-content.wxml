@@ -1,0 +1,11 @@
+<block wx:for="{{blocks}}" wx:key="id" wx:for-item="block">
+  <text wx:if="{{block.type === 'text'}}" class="study-text" selectable>{{block.text}}</text>
+  <scroll-view wx:else scroll-x class="study-table-scroll">
+    <view class="study-table">
+      <view wx:for="{{block.rows}}" wx:key="id" wx:for-item="row"
+        class="study-row {{row.id === 0 ? 'study-header' : ''}}">
+        <text wx:for="{{row.cells}}" wx:key="index" wx:for-item="cell" class="study-cell" selectable>{{cell}}</text>
+      </view>
+    </view>
+  </scroll-view>
+</block>

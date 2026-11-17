@@ -1,0 +1,11 @@
+<view
+  class="ls-track {{checked ? 'ls-checked' : ''}} {{pressing ? 'ls-pressing' : ''}} {{disabled ? 'ls-disabled' : ''}} {{reduceTransparency ? 'ls-reduce' : ''}}"
+  role="switch"
+  aria-checked="{{checked}}"
+  bindtouchstart="onTouchStart"
+  bindtouchend="onTouchEnd"
+  bindtouchcancel="onTouchEnd"
+  bindtap="onTap"
+>
+  <view class="ls-thumb"></view>
+</view>

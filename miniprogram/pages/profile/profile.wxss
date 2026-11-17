@@ -1,0 +1,211 @@
+.hero-card {
+  padding: 28rpx;
+}
+
+.user-strip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16rpx;
+  margin-bottom: 18rpx;
+}
+
+.user-name {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.status-pill {
+  flex-shrink: 0;
+  font-size: 24rpx;
+  font-weight: 700;
+  padding: 8rpx 18rpx;
+  border-radius: 999rpx;
+}
+
+.status-vip,
+.status-paid_quota {
+  background: #EFF6FF;
+  color: #1D4ED8;
+}
+
+.status-exhausted {
+  background: #FEF3C7;
+  color: #B45309;
+}
+
+.status-trial {
+  background: #EEF2FF;
+  color: #4338CA;
+}
+
+.hero-headline {
+  font-size: 35rpx;
+  font-weight: 800;
+  color: #0F172A;
+  margin-bottom: 14rpx;
+}
+
+.quota-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-bottom: 18rpx;
+}
+
+.quota-chip {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #475569;
+  background: #F1F5F9;
+  padding: 6rpx 16rpx;
+  border-radius: 999rpx;
+}
+
+.benefit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+  padding-top: 16rpx;
+  border-top: 1rpx solid #F1F5F9;
+}
+
+.benefit-item {
+  font-size: 26rpx;
+  color: #475569;
+  line-height: 1.5;
+}
+
+.links-card {
+  padding: 8rpx 28rpx;
+  margin-top: 18rpx;
+}
+
+.link-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx 0;
+}
+
+.link-left {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #1E293B;
+}
+
+.link-right {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #2563EB;
+}
+
+.link-divider {
+  height: 1rpx;
+  background: #F1F5F9;
+}
+
+.legacy-key-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  margin-top: 18rpx;
+  padding: 24rpx 28rpx;
+  font-size: 28rpx;
+  color: #1E293B;
+}
+
+button.unbind-btn {
+  width: auto;
+  min-width: 0;
+  flex-shrink: 0;
+  height: 60rpx;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 22rpx;
+  font-size: 24rpx;
+  font-weight: 700;
+  color: #DC2626;
+  background: #FFFFFF;
+  border: 1rpx solid #FECACA;
+  border-radius: 14rpx;
+}
+
+.prefs-card {
+  padding: 24rpx 28rpx 8rpx;
+}
+
+.prefs-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10rpx;
+}
+
+.prefs-title {
+  font-size: 29rpx;
+  font-weight: 800;
+  color: #0F172A;
+}
+
+.prefs-badge {
+  font-size: 22rpx;
+  font-weight: 700;
+  color: #2563EB;
+  background: rgba(239, 246, 255, 0.9);
+  border: 1rpx solid rgba(191, 219, 254, 0.9);
+  padding: 4rpx 14rpx;
+  border-radius: 999rpx;
+}
+
+.pref-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+  padding: 20rpx 0;
+}
+
+.pref-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.pref-label {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #1E293B;
+}
+
+.pref-desc {
+  font-size: 24rpx;
+  color: #64748B;
+  line-height: 1.45;
+}
+
+.logout-wrap {
+  text-align: center;
+  padding: 16rpx 0 24rpx;
+}
+
+.logout-link {
+  font-size: 26rpx;
+  color: #94A3B8;
+  padding: 12rpx 24rpx;
+}
+
+.reset-account {
+  margin-bottom: 20rpx;
+  min-height: 80rpx;
+  background: #fff0ee;
+  color: #9d231b;
+  font-size: 30rpx;
+  font-weight: 600;
+}

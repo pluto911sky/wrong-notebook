@@ -1,0 +1,97 @@
+<view class="page-shell detail-shell {{reduceTransparency ? 'reduce-transparency' : ''}}">
+  <island-toast toast="{{islandToast}}" reduceTransparency="{{reduceTransparency}}" />
+
+  <view wx:if="{{viewState === 'loading'}}" class="card state-box">
+    <text class="muted">正在加载错题详情…</text>
+  </view>
+
+  <view wx:elif="{{viewState === 'error'}}" class="card state-box">
+    <text class="error-text">{{errorMessage}}</text>
+  </view>
+
+  <block wx:else>
+    <view class="card exam-question-card">
+      <view class="exam-header">
+        <view class="exam-badges">
+          <text class="exam-subject">{{subjectName}}</text>
+          <text class="analysis-status {{hasAiAnalysis ? 'is-parsed' : 'is-unparsed'}}">
+            <text class="analysis-status-dot"></text>{{hasAiAnalysis ? '已解析' : '未解析'}}
+          </text>
+        </view>
+        <text class="exam-mastery {{item.masteryLevel > 0 ? 'mastery-yes' : 'mastery-no'}}">
+          {{item.masteryLevel > 0 ? '已掌握' : '待攻克'}}
+        </text>
+      </view>
+      <view wx:if="{{questionText}}" class="exam-question-body"><study-content content="{{questionText}}" /></view>
+      <button wx:if="{{showSupportingImage}}" size="mini" class="figure-button" bindtap="previewImage">查看原图</button>
+      <view wx:if="{{tags.length}}" class="exam-tags">
+        <text wx:for="{{tags}}" wx:key="*this" class="exam-tag">{{item}}</text>
+      </view>
+    </view>
+
+    <view wx:if="{{hasAiAnalysis}}" class="card answer-card">
+      <view wx:if="{{item.answerText}}">
+        <view class="rev-header">参考答案</view>
+        <view class="rev-content answer-bold"><study-content content="{{item.answerText}}" /></view>
+      </view>
+      <button wx:if="{{solutionSteps.length || mistakePoints.length || item.wrongAnswerText}}"
+        class="review-action" bindtap="toggleDetails">
+        {{detailsExpanded ? '收起解析' : '看详细解析'}}
+      </button>
+      <block wx:if="{{detailsExpanded}}">
+        <view wx:if="{{solutionSteps.length}}" class="revealed-box box-analysis">
+          <view class="rev-header">推导步骤</view>
+          <view class="rev-content"><study-content content="{{item.analysis}}" /></view>
+        </view>
+        <view wx:if="{{mistakePoints.length || item.wrongAnswerText}}" class="revealed-box box-hint">
+          <view class="rev-header">{{item.wrongAnswerText ? '错因与易错点' : '常见易错点'}}</view>
+          <view wx:if="{{item.wrongAnswerText}}" class="wrong-compare-line">我的错解：{{item.wrongAnswerText}}</view>
+          <view class="rev-content"><study-content content="{{item.mistakeAnalysis}}" /></view>
+        </view>
+        <view class="rev-disclaimer">AI 生成 · 仅供参考</view>
+      </block>
+    </view>
+    <view wx:else class="card answer-card">
+      <button class="primary-button" loading="{{analyzingNow}}" disabled="{{analyzingNow}}" bindtap="triggerAiAnalyze">
+        {{analyzingNow ? '正在解析…' : '解析本题'}}
+      </button>
+    </view>
+
+    <view wx:if="{{hasAiAnalysis && canPractice}}" class="card practice-entry">
+      <view class="section-title">举一反三</view>
+      <view class="practice-levels">
+        <view class="practice-level level-similar"><text class="level-number">01</text><text>同类</text></view>
+        <view class="practice-level level-advanced"><text class="level-number">02</text><text>进阶</text></view>
+        <view class="practice-level level-challenge"><text class="level-number">03</text><text>压轴</text></view>
+      </view>
+      <button class="primary-button" bindtap="startPractice">开始闯关</button>
+      <view class="practice-cost">首次生成用 1 次解析额度</view>
+    </view>
+
+    <!-- 个人复盘心得笔记 -->
+    <view class="card notes-card">
+      <view class="notes-header">
+        <text class="section-title" style="margin-bottom: 0;">笔记</text>
+        <text class="notes-save-pill" bindtap="saveNotes">{{savingNotes ? '保存中…' : '保存'}}</text>
+      </view>
+      <textarea
+        class="notes-editor"
+        value="{{userNotesDraft}}"
+        placeholder="记下解题要点"
+        bindinput="onNotesInput"
+        auto-height
+      />
+    </view>
+  </block>
+
+  <!-- 底部固定毛玻璃复习操作坞（安全防误删设计：更多操作收纳于 更多） -->
+  <view wx:if="{{viewState === 'ready'}}" class="sticky-bottom-bar review-dock">
+    <button
+      class="mastery-main-btn {{item.masteryLevel > 0 ? 'btn-unmaster' : 'btn-master'}}"
+      bindtap="toggleMastery"
+    >
+      {{item.masteryLevel > 0 ? '移回待攻克' : '标记已掌握'}}
+    </button>
+    <button class="more-side-btn" bindtap="openMoreActions">更多</button>
+  </view>
+</view>

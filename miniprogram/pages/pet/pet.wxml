@@ -1,0 +1,351 @@
+<view class="page-shell pet-page {{reduceTransparency ? 'reduce-transparency' : ''}}">
+  <island-toast toast="{{islandToast}}" reduceTransparency="{{reduceTransparency}}" />
+
+  <!-- 顶部三段切换导航：精灵小窝 / 抽心愿 / 心愿卡包 -->
+  <view class="pet-tabs">
+    <view
+      class="pet-tab {{activeTab === 'home' ? 'pet-tab-active' : ''}}"
+      data-tab="home"
+      bindtap="switchTab"
+    >
+      🐾 精灵小窝
+    </view>
+    <view
+      class="pet-tab {{activeTab === 'wheel' ? 'pet-tab-active' : ''}}"
+      data-tab="wheel"
+      bindtap="switchTab"
+    >
+      🎡 抽心愿
+      <text wx:if="{{pet && pet.lotteryTickets > 0}}" class="tab-badge">{{pet.lotteryTickets}}</text>
+    </view>
+    <view
+      class="pet-tab {{activeTab === 'bag' ? 'pet-tab-active' : ''}}"
+      data-tab="bag"
+      bindtap="switchTab"
+    >
+      🎒 卡包
+      <text wx:if="{{pendingWishCount > 0}}" class="tab-badge tab-badge-amber">{{pendingWishCount}}</text>
+    </view>
+  </view>
+
+  <!-- ==================== Tab 1: 精灵小窝 ==================== -->
+  <block wx:if="{{activeTab === 'home' && pet && species}}">
+    <!-- 暖杏陪学主舞台 -->
+    <view
+      class="stage-card"
+      style="background: {{species.bgGrad}}; border-color: {{species.borderColor}};"
+    >
+      <view class="stage-top-row">
+        <view class="level-badge" style="color: {{species.accentColor}};">
+          Lv.{{pet.level}} · {{pet.currentTitle}}
+        </view>
+        <view class="stage-actions">
+          <view class="switch-pet-btn" bindtap="openSpeciesPicker">🐾 选精灵(5选1)</view>
+          <view class="more-pet-btn" bindtap="openMoreActions">⋯</view>
+        </view>
+      </view>
+
+      <!-- 立绘与对话框 -->
+      <view class="stage-hero-row">
+        <view class="avatar-wrap" bindtap="handleTapPet">
+          <image
+            class="pet-avatar {{isBouncing ? 'pet-bounce' : 'pet-float'}}"
+            src="{{species.avatar}}"
+            mode="aspectFill"
+          />
+          <view wx:if="{{pet.level >= 2}}" class="grad-cap-badge">🎓</view>
+          <view class="pet-name-tag">{{pet.name}}</view>
+        </view>
+
+        <view class="hero-right">
+          <view class="speech-bubble">
+            <text class="bubble-text">💬 {{bubbleText}}</text>
+          </view>
+
+          <view class="exp-row">
+            <text class="exp-label">成长度（升1级送抽奖券）</text>
+            <text class="exp-num" style="color: {{species.accentColor}};">{{pet.currentExp}}/{{pet.maxExp}}</text>
+          </view>
+          <view class="exp-track">
+            <view
+              class="exp-fill"
+              style="width: {{expPercent}}%; background: {{species.accentColor}};"
+            ></view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 专属特性条 -->
+      <view class="trait-banner">
+        <text class="trait-title" style="color: {{species.accentColor}};">{{species.traitTitle}}：</text>
+        <text class="trait-desc">{{species.traitDesc}}</text>
+      </view>
+
+      <!-- 三项成长指标 -->
+      <view class="metrics-grid">
+        <view class="metric-cell">
+          <view class="metric-val">{{pet.hunger}}%</view>
+          <view class="metric-key">饱食度</view>
+        </view>
+        <view class="metric-cell">
+          <view class="metric-val">{{pet.mood}}%</view>
+          <view class="metric-key">心情值</view>
+        </view>
+        <view class="metric-cell">
+          <view class="metric-val">{{pet.conqueredErrors || 0}} 道</view>
+          <view class="metric-key">已消灭错题</view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 双胶囊投喂站 -->
+    <view class="section-heading-row">
+      <text class="section-heading">🥣 投喂小零食（快速涨经验）</text>
+      <text class="section-sub">点击小宠物还能对话打气</text>
+    </view>
+
+    <view class="snack-grid">
+      <view class="card snack-card">
+        <view class="snack-top">
+          <view class="snack-icon-box fish-box">🐟</view>
+          <view>
+            <view class="snack-name">智慧小鱼干</view>
+            <view class="snack-stock">库存 {{pet.inventory.fishCan || 0}} 包</view>
+          </view>
+        </view>
+        <button
+          class="snack-btn fish-btn"
+          data-food="fishCan"
+          bindtap="handleFeed"
+        >
+          喂食 (+10 EXP)
+        </button>
+      </view>
+
+      <view class="card snack-card">
+        <view class="snack-top">
+          <view class="snack-icon-box fruit-box">✨</view>
+          <view>
+            <view class="snack-name">金色能量果</view>
+            <view class="snack-stock">库存 {{pet.inventory.energyFruit || 0}} 颗</view>
+          </view>
+        </view>
+        <button
+          class="snack-btn fruit-btn"
+          data-food="energyFruit"
+          bindtap="handleFeed"
+        >
+          喂食 (+25 EXP)
+        </button>
+      </view>
+    </view>
+
+    <!-- 赚口粮指南卡 -->
+    <view class="card guide-card">
+      <view class="guide-title">经验奖励</view>
+      <view class="guide-line">录入 +5</view>
+      <view class="guide-line">答对同类 +5 · 进阶 +10 · 压轴 +15</view>
+      <view class="guide-line">升级得心愿券</view>
+    </view>
+  </block>
+
+  <!-- ==================== Tab 2: 幸运心愿抽奖 ==================== -->
+  <block wx:if="{{activeTab === 'wheel' && pet}}">
+    <view class="card wheel-header-card">
+      <view class="wheel-header-left">
+        <view class="wheel-title">心愿抽奖</view>
+        <view class="wheel-sub">每升 1 级获赠 1 张心愿抽奖券，抽中后找爸爸妈妈兑现！</view>
+      </view>
+      <view class="ticket-pill">🎟️ {{pet.lotteryTickets || 0}} 张</view>
+    </view>
+
+    <!-- 外圈八格按奖品索引顺时针排列 -->
+    <view class="card wheel-board-card">
+      <view class="wheel-grid">
+        <view
+          wx:for="{{wheelItems}}"
+          wx:key="id"
+          class="wheel-cell wheel-position-{{index}} {{activeWheelIdx === index ? 'wheel-cell-active' : ''}}"
+          style="background: {{item.color}};"
+          data-index="{{index}}"
+          bindtap="inspectWheelPrize"
+        >
+          <view class="wheel-cell-icon">{{item.icon}}</view>
+          <view class="wheel-cell-name">{{item.shortTitle}}</view>
+        </view>
+        <button class="wheel-draw" disabled="{{isSpinning || drawPending}}" bindtap="handleDrawWish">
+          <text class="wheel-draw-icon">✦</text>
+          <text>{{isSpinning || drawPending ? '抽奖中…' : '抽心愿'}}</text>
+          <text class="wheel-draw-cost">{{pet.lotteryTickets > 0 ? '消耗 1 张券' : '暂无券'}}</text>
+        </button>
+      </view>
+    </view>
+
+    <!-- 选中奖品说明卡 -->
+    <view wx:if="{{inspectedPrize}}" class="card prize-detail-card">
+      <view class="prize-detail-top">
+        <text class="prize-detail-icon">{{inspectedPrize.icon}}</text>
+        <text class="prize-detail-title">{{inspectedPrize.name}}</text>
+      </view>
+      <view wx:if="{{inspectedPrize.benefit}}" class="prize-detail-desc">
+        🎁 {{inspectedPrize.benefit}}
+      </view>
+      <view wx:if="{{inspectedPrize.rule}}" class="prize-detail-rule">
+        📌 兑现规则：{{inspectedPrize.rule}}
+      </view>
+      <view wx:if="{{inspectedPrize.isBlank}}" class="prize-detail-desc">
+        这次没有抽中心愿卡。
+      </view>
+    </view>
+  </block>
+
+  <!-- ==================== Tab 3: 心愿卡包（家长核销） ==================== -->
+  <block wx:if="{{activeTab === 'bag' && pet}}">
+    <view class="bag-filter-row">
+      <view
+        class="bag-filter-chip {{bagFilter === 'all' ? 'bag-filter-active' : ''}}"
+        data-filter="all"
+        bindtap="setBagFilter"
+      >
+        全部 ({{pet.lotteryHistory.length || 0}})
+      </view>
+      <view
+        class="bag-filter-chip {{bagFilter === 'pending' ? 'bag-filter-active' : ''}}"
+        data-filter="pending"
+        bindtap="setBagFilter"
+      >
+        待兑现 ({{pendingWishCount}})
+      </view>
+      <view
+        class="bag-filter-chip {{bagFilter === 'redeemed' ? 'bag-filter-active' : ''}}"
+        data-filter="redeemed"
+        bindtap="setBagFilter"
+      >
+        已兑现
+      </view>
+    </view>
+
+    <view wx:if="{{filteredHistory.length === 0}}" class="card empty-bag-card">
+      <view class="empty-bag-icon">🎒</view>
+      <view class="empty-bag-title">暂无心愿卡</view>
+      <view class="empty-bag-desc">攻克错题升级拿抽奖券，去「抽心愿」抽取你的第一张特权卡吧！</view>
+      <button class="secondary-button empty-bag-btn" bindtap="goToWheelTab">去幸运大转盘看看</button>
+    </view>
+
+    <view wx:for="{{filteredHistory}}" wx:key="id" class="card wish-card {{item.redeemed ? 'wish-redeemed' : ''}}">
+      <view class="wish-left">
+        <view class="wish-icon-box">{{item.icon || '🎁'}}</view>
+        <view class="wish-meta">
+          <view class="wish-name">{{item.prizeName}}</view>
+          <view class="wish-benefit">{{item.benefit || '凭本卡可向家长申请兑现奖励'}}</view>
+          <view class="wish-time">抽取时间：{{item.time}}</view>
+        </view>
+      </view>
+      <button
+        class="redeem-action-btn {{item.redeemed ? 'redeem-done-btn' : ''}}"
+        data-id="{{item.id}}"
+        bindtap="handleToggleRedeem"
+      >
+        {{item.redeemed ? '✓ 已兑现' : '家长核销'}}
+      </button>
+    </view>
+  </block>
+
+  <!-- ==================== 5 选 1 宠物精灵选择抽屉 ==================== -->
+  <view wx:if="{{showSpeciesPicker}}" class="picker-mask" catchtap="closeSpeciesPicker">
+    <view class="picker-sheet" catchtap="noop">
+      <view class="sheet-grabber"></view>
+      <view class="picker-header">
+        <view>
+          <view class="picker-title">选择宠物</view>
+          <view class="picker-sub">切换伙伴会保留你当前的等级、零食库存与心愿卡包</view>
+        </view>
+        <view class="picker-close" bindtap="closeSpeciesPicker">✕</view>
+      </view>
+
+      <!-- 5 枚精灵横向头像条 -->
+      <view class="species-grid">
+        <view
+          wx:for="{{speciesList}}"
+          wx:key="type"
+          class="species-item {{previewSpecies.type === item.type ? 'species-item-active' : ''}}"
+          style="{{previewSpecies.type === item.type ? 'border-color:' + item.accentColor + '; background:' + item.accentBg : ''}}"
+          data-type="{{item.type}}"
+          bindtap="selectPreviewSpecies"
+        >
+          <image class="species-thumb" src="{{item.avatar}}" mode="aspectFill" />
+          <view class="species-name">{{item.name}}</view>
+          <view class="species-tag">{{item.tag}}</view>
+        </view>
+      </view>
+
+      <!-- 选中宠物外貌与特征档案卡 -->
+      <view
+        wx:if="{{previewSpecies}}"
+        class="species-profile-card"
+        style="background: {{previewSpecies.bgGrad}}; border-color: {{previewSpecies.borderColor}};"
+      >
+        <view class="profile-head">
+          <image class="profile-avatar" src="{{previewSpecies.avatar}}" mode="aspectFill" />
+          <view class="profile-head-info">
+            <view class="profile-name-row">
+              <text class="profile-name">{{previewSpecies.name}}</text>
+              <text class="profile-pill" style="color: {{previewSpecies.accentColor}};">{{previewSpecies.tag}}</text>
+            </view>
+            <view class="profile-trait" style="color: {{previewSpecies.accentColor}};">
+              {{previewSpecies.traitTitle}}：{{previewSpecies.traitDesc}}
+            </view>
+          </view>
+        </view>
+        <view class="profile-detail-line">
+          <text class="detail-label">外貌特征：</text>{{previewSpecies.appearance}}
+        </view>
+        <view class="profile-detail-line">
+          <text class="detail-label">性格特点：</text>{{previewSpecies.personality}}
+        </view>
+      </view>
+
+      <!-- 可选昵称 -->
+      <view class="nickname-row">
+        <text class="nickname-label">自定义昵称</text>
+        <input
+          class="nickname-input"
+          placeholder="留空则使用默认名「{{previewSpecies.name}}」"
+          value="{{customNameInput}}"
+          maxlength="12"
+          bindinput="handleNicknameInput"
+        />
+      </view>
+
+      <button class="primary-button" bindtap="confirmSelectSpecies">
+        让「{{customNameInput || previewSpecies.name}}」陪我刷错题
+      </button>
+    </view>
+  </view>
+
+  <!-- ==================== 底部固定操作坞 ==================== -->
+  <view wx:if="{{activeTab !== 'wheel'}}" class="sticky-bottom-bar">
+    <block wx:if="{{activeTab === 'home'}}">
+      <button
+        wx:if="{{pet && pet.lotteryTickets > 0}}"
+        class="primary-button dock-warm-btn"
+        bindtap="goToWheelTab"
+      >
+        🎟️ 有 {{pet.lotteryTickets}} 张心愿券，立即去抽奖 ›
+      </button>
+      <button
+        wx:else
+        class="primary-button"
+        bindtap="goToStudyList"
+      >
+        📘 去错题本攻克 1 题 · 赚经验与小鱼干 ›
+      </button>
+    </block>
+
+    <block wx:else>
+      <button class="primary-button dock-warm-btn" bindtap="goToWheelTab">
+        🎡 去心愿抽奖再抽一次（剩 {{(pet && pet.lotteryTickets) || 0}} 张券）
+      </button>
+    </block>
+  </view>
+</view>

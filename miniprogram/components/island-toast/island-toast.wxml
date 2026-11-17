@@ -1,0 +1,10 @@
+<view class="island-toast-host {{toast && toast.visible ? 'is-visible' : ''}}">
+  <view class="island-pill type-{{(toast && toast.type) || 'info'}} {{reduceTransparency ? 'is-reduce' : ''}}">
+    <view class="island-badge">
+      <text wx:if="{{toast && toast.type === 'success'}}" class="island-glyph">✓</text>
+      <text wx:elif="{{toast && (toast.type === 'error' || toast.type === 'warn')}}" class="island-glyph">!</text>
+      <text wx:else class="island-glyph">✦</text>
+    </view>
+    <text class="island-text">{{(toast && toast.title) || ''}}</text>
+  </view>
+</view>

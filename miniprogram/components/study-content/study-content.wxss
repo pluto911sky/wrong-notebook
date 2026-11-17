@@ -1,0 +1,25 @@
+.study-text {
+  display: block;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.study-table-scroll {
+  margin: 16rpx 0;
+  width: 100%;
+}
+
+.study-table {
+  display: inline-table;
+  min-width: 100%;
+  border-collapse: collapse;
+}
+
+.study-row { display: table-row; }
+.study-header { background: #eef3fd; font-weight: 600; }
+.study-cell {
+  display: table-cell;
+  min-width: 96rpx;
+  padding: 10rpx 14rpx;
+  border: 1rpx solid #ccd8ef;
+}

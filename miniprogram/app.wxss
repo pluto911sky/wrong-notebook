@@ -1,0 +1,221 @@
+/* ============================================================
+ * 全站 iOS Liquid Glass 视觉规范（微信小程序 3 层体系）
+ * Layer 1：背景画布层（柔和环境渐变底）
+ * Layer 2：实体内容层（高对比卡片，保证文字/公式阅读清晰）
+ * Layer 3：玻璃操作层（吸顶导航、底部坞、气泡、抽屉弹窗）
+ * ============================================================ */
+
+page {
+  min-height: 100%;
+  background: #F3F6FD;
+  background-image:
+    radial-gradient(circle at 12% 8%, rgba(59, 130, 246, 0.08) 0%, rgba(59, 130, 246, 0) 45%),
+    radial-gradient(circle at 88% 18%, rgba(99, 102, 241, 0.08) 0%, rgba(99, 102, 241, 0) 42%),
+    linear-gradient(170deg, #F3F6FD 0%, #EEF2FF 55%, #F8FAFC 100%);
+  color: #0F172A;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", sans-serif;
+  font-size: 32rpx;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+view,
+text,
+input,
+textarea,
+button {
+  box-sizing: border-box;
+}
+
+button {
+  border-radius: 22rpx;
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), opacity 160ms ease;
+}
+
+button:not([size='mini']) {
+  width: auto;
+  min-width: 0;
+  margin-left: 0;
+  margin-right: 0;
+  padding: 0 24rpx;
+}
+
+button:active {
+  transform: scale(0.975);
+  opacity: 0.92;
+}
+
+button::after {
+  border: none;
+}
+
+/* Layer 1: 页面画布外壳 */
+.page-shell {
+  width: 100%;
+  min-height: 100vh;
+  overflow-x: hidden;
+  padding: 24rpx 28rpx calc(48rpx + env(safe-area-inset-bottom));
+}
+
+/* Layer 2: 实体内容层（高可读性主体卡片） */
+.card {
+  background: rgba(255, 255, 255, 0.94);
+  border-radius: 30rpx;
+  padding: 30rpx;
+  margin-bottom: 24rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.95);
+  box-shadow:
+    0 12rpx 32rpx -8rpx rgba(15, 23, 42, 0.06),
+    0 2rpx 6rpx rgba(15, 23, 42, 0.03);
+}
+
+.section-title {
+  font-size: 33rpx;
+  font-weight: 700;
+  color: #0F172A;
+  margin-bottom: 12rpx;
+}
+
+.muted {
+  font-size: 26rpx;
+  color: #64748B;
+  line-height: 1.55;
+}
+
+/* 通用主次按钮 */
+button.primary-button,
+.primary-button {
+  width: 100%;
+  min-width: 0;
+  height: 92rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #2563EB 0%, #4F46E5 100%);
+  color: #FFFFFF;
+  font-size: 31rpx;
+  font-weight: 700;
+  border-radius: 24rpx;
+  box-shadow:
+    0 12rpx 26rpx -6rpx rgba(37, 99, 235, 0.4),
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.28);
+  text-align: center;
+  padding: 0 24rpx;
+  white-space: nowrap;
+}
+
+button.secondary-button,
+.secondary-button {
+  width: 100%;
+  min-width: 0;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  color: #334155;
+  font-size: 30rpx;
+  font-weight: 600;
+  border-radius: 24rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.88);
+  box-shadow:
+    0 6rpx 18rpx -4rpx rgba(15, 23, 42, 0.06),
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.9);
+  text-align: center;
+  padding: 0 24rpx;
+  white-space: nowrap;
+}
+
+/* Layer 3: 玻璃操作层（底部流体毛玻璃操作坞） */
+.sticky-bottom-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 90;
+  background: rgba(255, 255, 255, 0.74);
+  backdrop-filter: blur(26px) saturate(180%);
+  -webkit-backdrop-filter: blur(26px) saturate(180%);
+  border-top: 1rpx solid rgba(255, 255, 255, 0.85);
+  padding: 20rpx 28rpx calc(20rpx + env(safe-area-inset-bottom));
+  box-shadow:
+    0 -12rpx 34rpx -8rpx rgba(15, 23, 42, 0.08),
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.92);
+}
+
+/* 可复用毛玻璃胶囊与分段器底座 */
+.liquid-glass {
+  background: rgba(255, 255, 255, 0.68);
+  backdrop-filter: blur(22px) saturate(175%);
+  -webkit-backdrop-filter: blur(22px) saturate(175%);
+  border: 1rpx solid rgba(255, 255, 255, 0.86);
+  box-shadow:
+    0 10rpx 28rpx -6rpx rgba(15, 23, 42, 0.08),
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.92);
+}
+
+/* ============================================================
+ * 辅助功能模式：减少透明与模糊（低配手机性能优化）
+ * ============================================================ */
+.page-shell.reduce-transparency {
+  background: #F6F7FB;
+}
+
+.reduce-transparency .card {
+  background: #FFFFFF;
+  border-color: #E2E8F0;
+  box-shadow: 0 4rpx 14rpx rgba(15, 23, 42, 0.04);
+}
+
+.reduce-transparency .secondary-button,
+.reduce-transparency .sticky-bottom-bar,
+.reduce-transparency .liquid-glass,
+.reduce-transparency .sticky-filter-panel,
+.reduce-transparency .segmented-control,
+.reduce-transparency .flashcard-tabs,
+.reduce-transparency .pet-tabs,
+.reduce-transparency .stepper-bar,
+.reduce-transparency .picker-mask,
+.reduce-transparency .picker-sheet,
+.reduce-transparency .speech-bubble,
+.reduce-transparency .quota-pill,
+.reduce-transparency .profile-button,
+.reduce-transparency .pet-preview-strip,
+.reduce-transparency .search-bar,
+.reduce-transparency .subject-filter-pill,
+.reduce-transparency .mastery-seg,
+.reduce-transparency .switch-pet-btn,
+.reduce-transparency .more-pet-btn,
+.reduce-transparency .brand-pill,
+.reduce-transparency .privacy-strip-card,
+.reduce-transparency .floating-nav-dock {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.reduce-transparency .floating-nav-dock,
+.reduce-transparency .brand-pill,
+.reduce-transparency .privacy-strip-card {
+  background: #FFFFFF;
+  border-color: #E2E8F0;
+}
+
+.reduce-transparency .secondary-button {
+  background: #F8FAFC;
+  border: 2rpx solid #E2E8F0;
+  box-shadow: none;
+}
+
+.reduce-transparency .sticky-bottom-bar {
+  background: #FFFFFF;
+  border-top: 1rpx solid #E2E8F0;
+  box-shadow: 0 -4rpx 16rpx rgba(15, 23, 42, 0.04);
+}
+
+.reduce-transparency .liquid-glass {
+  background: #FFFFFF;
+  border-color: #E2E8F0;
+  box-shadow: 0 4rpx 12rpx rgba(15, 23, 42, 0.04);
+}

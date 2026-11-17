@@ -1,0 +1,151 @@
+<view class="page-shell confirm-shell {{reduceTransparency ? 'reduce-transparency' : ''}}">
+  <island-toast toast="{{islandToast}}" reduceTransparency="{{reduceTransparency}}" />
+
+  <!-- 顶部三步流程引导条 -->
+  <view class="stepper-bar">
+    <view class="st-item st-done">1. 采集错题</view>
+    <view class="st-line st-line-done"></view>
+    <view class="st-item st-current">2. 校对与归类</view>
+    <view class="st-line"></view>
+    <view class="st-item">3. 存入错题本</view>
+  </view>
+
+  <view wx:if="{{viewState === 'loading'}}" class="card state-card">
+    <view class="spinner"></view>
+    <text class="muted">正在准备错题校对草稿…</text>
+  </view>
+
+  <view wx:elif="{{viewState === 'error'}}" class="card state-card">
+    <text class="error-text">{{errorMessage}}</text>
+    <button class="secondary-button" bindtap="retryNotebooks">重试加载</button>
+  </view>
+
+  <block wx:else>
+    <view wx:if="{{imagePath}}" class="card original-question">
+      <view class="label-row">
+        <text class="field-label">原题图</text>
+        <button size="mini" class="original-question-zoom" bindtap="previewImage">放大原图</button>
+      </view>
+      <image class="original-question-image" src="{{imagePath}}" mode="widthFix" bindtap="previewImage" />
+      <text class="field-hint">核对配图、表格与公式，可在下方删掉误识别的手写内容。</text>
+    </view>
+
+    <!-- 卡片 1：学科归属与题干校对 -->
+    <view class="card">
+      <view class="field-block">
+        <view class="label-row">
+          <text class="field-label">学科</text>
+        </view>
+        <picker mode="selector" disabled="{{viewState !== 'ready' || savePending}}" range="{{notebooks}}" range-key="name" value="{{notebookIndex}}" bindchange="onNotebookChange">
+          <view class="subject-picker-box">
+            <text wx:if="{{notebookIndex >= 0}}" class="picker-selected">{{notebooks[notebookIndex].name}}</text>
+            <text wx:else class="picker-placeholder">点击选择学科错题本</text>
+            <text class="picker-chevron">切换学科 ▾</text>
+          </view>
+        </picker>
+      </view>
+
+      <view class="field-block" style="margin-top: 28rpx;">
+        <view class="label-row">
+          <text class="field-label">题干文字</text>
+          <text class="field-hint">可编辑</text>
+        </view>
+        <textarea
+          class="question-editor"
+          value="{{questionText}}"
+          maxlength="-1"
+          disabled="{{viewState !== 'ready' || savePending}}"
+          placeholder="请输入或校对错题题干文字…"
+          bindinput="onQuestionInput"
+          auto-height
+        />
+      </view>
+
+      <view class="field-block" style="margin-top: 24rpx;">
+        <view class="label-row">
+          <text class="field-label">⚠️ 我当时的错解 / 易错点（选填）</text>
+        </view>
+        <textarea
+          class="wrong-input"
+          value="{{wrongAnswerText}}"
+          maxlength="5000"
+          disabled="{{viewState !== 'ready' || savePending}}"
+          placeholder="记录当时做错的答案或卡壳原因，方便日后重点复盘…"
+          bindinput="onWrongAnswerInput"
+        />
+      </view>
+
+      <view wx:if="{{knowledgePoints.length > 0}}" class="field-block" style="margin-top: 24rpx;">
+        <text class="field-label">🏷️ 识别到的考点标签</text>
+        <view class="tag-list">
+          <text wx:for="{{knowledgePoints}}" wx:key="*this" class="kp-tag">{{item}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 卡片 2A：若尚未做 AI 分析 —— 提供按需召唤 AI 分析卡片 -->
+    <view wx:if="{{!analyzed && !savePending}}" class="card ai-invite-card">
+      <view class="ai-invite-top">
+        <view class="ai-invite-title">解析本题</view>
+        <text wx:if="{{quota}}" class="ai-invite-quota">{{quota.statusText}}</text>
+      </view>
+      <view class="ai-invite-desc">
+        也可直接保存。
+      </view>
+      <button class="ai-trigger-btn" loading="{{analyzingNow}}" disabled="{{analyzingNow || viewState !== 'ready'}}" bindtap="runAiAnalyzeNow">
+        开始解析
+      </button>
+    </view>
+
+    <!-- 卡片 2B：若已完成智能分析 —— 结构化展示并允许微调 -->
+    <view wx:elif="{{analyzed}}" class="card ai-result-card">
+      <view class="ai-result-header">
+        <button class="details-toggle" bindtap="toggleDetails">{{detailsExpanded ? '收起详细解析' : '看详细解析'}}</button>
+        <text wx:if="{{viewState === 'ready' && !savePending}}" class="reanalyze-pill" bindtap="runAiAnalyzeNow">
+          {{analyzingNow ? '重新分析中…' : '重新解析'}}
+        </text>
+      </view>
+
+      <view class="field-block" style="margin-top: 24rpx;">
+        <text class="field-label">参考答案</text>
+        <textarea
+          class="answer-editor"
+          value="{{answerText}}"
+          maxlength="-1"
+          disabled="{{viewState !== 'ready' || savePending}}"
+          bindinput="onAnswerInput"
+          auto-height
+        />
+      </view>
+
+      <block wx:if="{{detailsExpanded}}">
+      <view class="field-block" style="margin-top: 24rpx;">
+        <text class="field-label">推导步骤</text>
+        <textarea
+          class="analysis-editor"
+          value="{{analysis}}"
+          maxlength="-1"
+          disabled="{{viewState !== 'ready' || savePending}}"
+          bindinput="onAnalysisInput"
+          auto-height
+        />
+      </view>
+      <view wx:if="{{mistakeAnalysis}}" class="diagnostic-callout">
+        <view class="diag-title">错因与易错点</view>
+        <view class="diag-body">{{mistakeAnalysis}}</view>
+      </view>
+      </block>
+    </view>
+
+    <view wx:if="{{errorMessage || (savePending && viewState !== 'saving')}}" class="error-banner">
+      <text class="error-banner-text">⚠️ {{errorMessage || '暂未确认保存，重试不会重复录入'}}</text>
+    </view>
+  </block>
+
+  <!-- 底部固定毛玻璃保存坞（单手拇指一触即达） -->
+  <view class="sticky-bottom-bar">
+    <button class="primary-button" loading="{{viewState === 'saving'}}" disabled="{{analyzingNow || viewState !== 'ready'}}" bindtap="save">
+      {{savePending ? '重试保存' : '保存错题'}}
+    </button>
+  </view>
+</view>

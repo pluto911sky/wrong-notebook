@@ -1,0 +1,31 @@
+{
+  "description": "资源方 wx29f37952fff2dc57 云函数部署专用项目。仅用于把 cloudfunctions/ 下的 errorbookApi 与 cloudbase_auth 上传到 vision-prod-d6gm5kqaz79d6a35f；不要用本项目点顶部「上传」发布小程序代码。日常开发仍导入 miniprogram/ 目录。",
+  "projectname": "errorbook-cloud-deploy-ONLY",
+  "appid": "wx29f37952fff2dc57",
+  "compileType": "miniprogram",
+  "miniprogramRoot": "./miniprogram/",
+  "cloudfunctionRoot": "./cloudfunctions/",
+  "libVersion": "2.13.0",
+  "packOptions": {
+    "ignore": [
+      {
+        "type": "folder",
+        "value": ".workbuddy"
+      },
+      {
+        "type": "file",
+        "value": "project.config.json"
+      },
+      {
+        "type": "file",
+        "value": "project.private.config.json"
+      }
+    ]
+  },
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "postcss": true,
+    "minified": true
+  }
+}

@@ -1,0 +1,40 @@
+.doc-card {
+  padding: 36rpx 32rpx;
+}
+
+.doc-title {
+  font-size: 39rpx;
+  font-weight: 800;
+  color: #0F172A;
+}
+
+.doc-section {
+  margin-top: 28rpx;
+  padding-top: 22rpx;
+  border-top: 1rpx solid #E2E8F0;
+}
+
+.sec-h {
+  font-size: 29rpx;
+  font-weight: 700;
+  color: #1E293B;
+  margin-bottom: 10rpx;
+}
+
+.sec-p {
+  font-size: 26rpx;
+  line-height: 1.7;
+  color: #475569;
+  margin-top: 8rpx;
+}
+
+.doc-section button {
+  margin-top: 18rpx;
+}
+
+.agree-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 14rpx;
+  margin-top: 34rpx;
+}

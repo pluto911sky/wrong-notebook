@@ -1,0 +1,332 @@
+<view class="page-shell capture-shell {{reduceTransparency ? 'reduce-transparency' : ''}}">
+  <island-toast toast="{{islandToast}}" reduceTransparency="{{reduceTransparency}}" />
+
+  <!-- 离屏高分辨率裁剪画布（必须保持常驻 DOM 以供 2D Canvas 导出局部图片） -->
+  <canvas
+    type="2d"
+    id="cropCanvas"
+    class="offscreen-canvas"
+  ></canvas>
+  <canvas type="webgl" id="ocrCanvas" class="offscreen-canvas"></canvas>
+
+  <view wx:if="{{checkingPet}}" class="card loading-card">正在核对伴学精灵…</view>
+  <view wx:elif="{{hasConfirmDraft}}" class="card">
+    <view class="field-title">有一份待保存的错题草稿</view>
+    <button class="primary-button" bindtap="resumeConfirm">继续校对草稿</button>
+  </view>
+  <block wx:else>
+  <!-- 录题模式分段切换器（裁剪与解析中隐藏，聚焦当前任务） -->
+  <view wx:if="{{viewState !== 'analyzing' && viewState !== 'cropping'}}" class="segmented-control">
+    <view
+      class="seg-item {{inputMode === 'photo' ? 'seg-active' : ''}}"
+      data-mode="photo"
+      bindtap="switchInputMode"
+    >
+      <text class="seg-icon">📷</text>
+      <text class="seg-label">拍照 / 相册扫描</text>
+    </view>
+    <view
+      class="seg-item {{inputMode === 'text' ? 'seg-active' : ''}}"
+      data-mode="text"
+      bindtap="switchInputMode"
+    >
+      <text class="seg-icon">⌨️</text>
+      <text class="seg-label">打字 / 粘贴录入</text>
+    </view>
+  </view>
+
+  <view wx:if="{{errorMessage && (viewState === 'cropping' || (inputMode === 'photo' && !imagePath))}}" class="error-banner">
+    <text class="error-banner-text">⚠️ {{errorMessage}}</text>
+  </view>
+
+  <!-- 状态 1：OCR / AI 深度解析进行中 -->
+  <view wx:if="{{viewState === 'analyzing'}}" class="card analyzing-card">
+    <view wx:if="{{imagePath}}" class="analyzing-preview-wrap">
+      <image class="analyzing-thumb" src="{{imagePath}}" mode="aspectFill" />
+      <view class="scan-laser"></view>
+    </view>
+    <view class="pulse-ring"></view>
+    <view class="analyzing-title">{{stageText || '处理中…'}}</view>
+    <view class="analyzing-sub">完成后将进入校对页，保存前可自由修改任何内容</view>
+
+    <view wx:if="{{aiEnabled}}" class="step-progress-list">
+      <view class="step-row step-done">
+        <text class="step-badge">✓</text>
+        <text class="step-name">1. 图像增强与局部题干锁定</text>
+      </view>
+      <view class="step-row step-active">
+        <text class="step-badge">●</text>
+        <text class="step-name">2. 提取题干公式与匹配学科考点</text>
+      </view>
+      <view class="step-row">
+        <text class="step-badge">3</text>
+        <text class="step-name">3. 生成结构化草稿供您校对</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 状态 2：拍照/选图后的自由框选裁剪模式（解决“整张卷子只截一道错题”需求） -->
+  <block wx:elif="{{viewState === 'cropping'}}">
+    <view class="card crop-card">
+      <view class="crop-header">
+        <view>
+          <view class="crop-title">✂️ 框选其中一道错题</view>
+          <view class="crop-sub">把题干、配图和表格一起框进来，尽量避开旁边的手写笔记。</view>
+        </view>
+      </view>
+
+      <!-- 裁剪画布舞台 -->
+      <view class="crop-stage-wrap">
+        <view
+          class="crop-stage"
+          style="width: {{stageWidth}}px; height: {{stageHeight}}px;"
+        >
+          <image
+            class="crop-raw-image"
+            src="{{rawImagePath}}"
+            mode="scaleToFill"
+          />
+
+          <!-- 四周暗色遮罩 -->
+          <view class="crop-mask" style="left: 0; top: 0; width: {{stageWidth}}px; height: {{cropY}}px;"></view>
+          <view class="crop-mask" style="left: 0; top: {{cropY + cropH}}px; width: {{stageWidth}}px; height: {{stageHeight - cropY - cropH}}px;"></view>
+          <view class="crop-mask" style="left: 0; top: {{cropY}}px; width: {{cropX}}px; height: {{cropH}}px;"></view>
+          <view class="crop-mask" style="left: {{cropX + cropW}}px; top: {{cropY}}px; width: {{stageWidth - cropX - cropW}}px; height: {{cropH}}px;"></view>
+
+          <!-- 可拖动选框主体 -->
+          <view
+            class="crop-box"
+            style="left: {{cropX}}px; top: {{cropY}}px; width: {{cropW}}px; height: {{cropH}}px;"
+            data-handle="move"
+            catchtouchstart="onCropTouchStart"
+            catchtouchmove="onCropTouchMove"
+            catchtouchend="onCropTouchEnd"
+          >
+            <!-- 三等分辅助线 -->
+            <view class="grid-v grid-v1"></view>
+            <view class="grid-v grid-v2"></view>
+            <view class="grid-h grid-h1"></view>
+            <view class="grid-h grid-h2"></view>
+
+            <!-- 四个角抓手（大热区，单手好拉动） -->
+            <view
+              class="corner-hit hit-tl"
+              data-handle="tl"
+              catchtouchstart="onCropTouchStart"
+              catchtouchmove="onCropTouchMove"
+              catchtouchend="onCropTouchEnd"
+            ><view class="corner-mark mark-tl"></view></view>
+
+            <view
+              class="corner-hit hit-tr"
+              data-handle="tr"
+              catchtouchstart="onCropTouchStart"
+              catchtouchmove="onCropTouchMove"
+              catchtouchend="onCropTouchEnd"
+            ><view class="corner-mark mark-tr"></view></view>
+
+            <view
+              class="corner-hit hit-bl"
+              data-handle="bl"
+              catchtouchstart="onCropTouchStart"
+              catchtouchmove="onCropTouchMove"
+              catchtouchend="onCropTouchEnd"
+            ><view class="corner-mark mark-bl"></view></view>
+
+            <view
+              class="corner-hit hit-br"
+              data-handle="br"
+              catchtouchstart="onCropTouchStart"
+              catchtouchmove="onCropTouchMove"
+              catchtouchend="onCropTouchEnd"
+            ><view class="corner-mark mark-br"></view></view>
+          </view>
+        </view>
+      </view>
+
+      <view class="crop-quick-tools">
+        <text class="crop-tool-chip" bindtap="resetCropToFull">↺ 全框整张图</text>
+        <text class="crop-tool-chip" bindtap="useFullImageDirectly">用整张图</text>
+      </view>
+      <view wx:if="{{errorMessage}}" class="error-banner">
+        <text class="error-banner-text">{{errorMessage}}</text>
+      </view>
+    </view>
+
+    <!-- 裁剪模式固定底栏 -->
+    <view class="sticky-bottom-bar crop-dock">
+      <button class="secondary-button crop-cancel-btn" bindtap="retake">重拍</button>
+      <button class="primary-button crop-confirm-btn" loading="{{croppingBusy}}" bindtap="confirmCrop">
+        {{croppingBusy ? '正在截取…' : '✅ 确认裁出这道错题'}}
+      </button>
+    </view>
+  </block>
+
+  <!-- 状态 3：拍照 / 相册模式 -->
+  <block wx:elif="{{inputMode === 'photo'}}">
+    <!-- 3A：未选图 -->
+    <view wx:if="{{viewState === 'idle' && !imagePath}}" class="card viewfinder-card">
+      <view class="viewfinder-box" bindtap="chooseImage" data-source="camera">
+        <view class="vf-corner vf-tl"></view>
+        <view class="vf-corner vf-tr"></view>
+        <view class="vf-corner vf-bl"></view>
+        <view class="vf-corner vf-br"></view>
+
+        <view class="vf-camera-circle">📷</view>
+        <view class="vf-main-title">拍下试卷或导入错题照片</view>
+        <view class="vf-tips">拍整张卷子也没关系，选图后支持自由框选其中一道错题</view>
+      </view>
+
+      <view class="capture-btn-row">
+        <view class="cap-btn cap-btn-primary" bindtap="chooseImage" data-source="camera">
+          <text class="cap-btn-icon">📸</text>
+          <view class="cap-btn-col">
+            <text class="cap-btn-title">立即拍照</text>
+            <text class="cap-btn-sub">拍摄后可框选单题</text>
+          </view>
+        </view>
+
+        <view class="cap-btn cap-btn-secondary" bindtap="chooseImage" data-source="album">
+          <text class="cap-btn-icon">🖼️</text>
+          <view class="cap-btn-col">
+            <text class="cap-btn-title">相册选图</text>
+            <text class="cap-btn-sub">导入截图后可裁剪</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="reassure-strip">
+        <text class="reassure-tag">安心提示</text>
+        <text class="reassure-text">手机识题无需上传图片，不扣解析次数</text>
+      </view>
+    </view>
+
+    <!-- 3B：已裁剪确认，等待底部一键提交（方案 A） -->
+    <block wx:else>
+      <view class="card image-stage-card">
+        <view class="image-stage-header">
+          <text class="stage-label">已框选的错题图片</text>
+          <view class="stage-tools">
+            <text class="tool-chip tool-crop" bindtap="reopenCropMode">✂️ 重新框选</text>
+            <text class="tool-chip" bindtap="previewImage">🔍 放大</text>
+            <text class="tool-chip tool-retake" bindtap="retake">🔄 重拍</text>
+          </view>
+        </view>
+        <image class="staged-image" src="{{imagePath}}" mode="widthFix" bindtap="previewImage" />
+        <view class="manual-skip-row">
+          <text class="manual-skip-link" bindtap="skipToManualConfirm">跳过 OCR 识别，直接带图手动填题干 ›</text>
+        </view>
+      </view>
+
+      <view wx:if="{{errorMessage}}" class="error-banner">
+        <text class="error-banner-text">⚠️ {{errorMessage}}</text>
+      </view>
+      <button wx:if="{{errorMessage && photoOcrFailed}}" class="secondary-button" bindtap="handleCloudOcr">
+        上传这张题图到云端识题
+      </button>
+
+      <!-- 方案 A 底部固定「AI 开关 + 单键提交」操作坞 -->
+      <view class="sticky-bottom-bar dock-mode-a">
+        <view
+          class="ai-switch-card {{aiEnabled ? 'sw-on' : 'sw-off'}}"
+          bindtap="toggleAiEnabled"
+        >
+          <view class="sw-text-col">
+            <view class="sw-title">
+              {{aiEnabled ? '云端解析' : '手机识题'}}
+            </view>
+            <view class="sw-sub">
+              <block wx:if="{{quota && !quota.canAnalyze}}">
+                当前解析额度已用完，可继续识题保存
+              </block>
+              <block wx:elif="{{aiEnabled}}">
+                {{quota && quota.accessMode === 'trial' ? '将消耗 1 次额度（免费试用剩 ' + quota.trialRemaining + '/' + (quota.trialLimit || 3) + ' 次）' : (quota ? quota.statusText : '自动生成参考答案、解析与错因')}}
+              </block>
+              <block wx:else>
+                本机识题，不扣次数
+              </block>
+            </view>
+          </view>
+          <liquid-switch checked="{{aiEnabled}}" reduceTransparency="{{reduceTransparency}}" passive="{{true}}" />
+        </view>
+
+        <button
+          class="primary-button {{aiEnabled ? '' : 'btn-free-green'}}"
+          bindtap="handlePhotoSubmit"
+        >
+          {{aiEnabled ? '识题并解析' : '手机识题 ›'}}
+        </button>
+      </view>
+    </block>
+  </block>
+
+  <!-- 状态 4：打字 / 粘贴录入模式 -->
+  <block wx:elif="{{inputMode === 'text'}}">
+    <view class="card text-entry-card">
+      <view class="field-group">
+        <view class="field-header">
+          <text class="field-title">错题题干</text>
+          <text class="field-req">必填 · 支持直接粘贴</text>
+        </view>
+        <textarea
+          class="paper-textarea"
+          value="{{typedQuestion}}"
+          maxlength="5000"
+          placeholder="在此输入或粘贴错题内容…&#10;例如：已知二次函数 y = x² - 4x + 3，求其顶点坐标及与 x 轴交点坐标。"
+          bindinput="onTypedQuestionInput"
+        />
+      </view>
+
+      <view class="field-group" style="margin-top: 28rpx;">
+        <view class="field-header">
+          <text class="field-title">我当时的错解 / 卡壳处</text>
+          <text class="field-opt">选填 · 有助于精准诊断错因</text>
+        </view>
+        <input
+          class="paper-input"
+          value="{{typedWrongAnswer}}"
+          placeholder="例如：配方法符号弄反了，算成了 (x+2)² - 1"
+          bindinput="onTypedWrongAnswerInput"
+        />
+      </view>
+
+      <view wx:if="{{errorMessage}}" class="error-banner" style="margin-top: 24rpx;">
+        <text class="error-banner-text">⚠️ {{errorMessage}}</text>
+      </view>
+    </view>
+
+    <!-- 方案 A 底部固定「智能分析开关 + 单键提交」操作坞 -->
+    <view class="sticky-bottom-bar dock-mode-a">
+      <view
+        class="ai-switch-card {{aiEnabled ? 'sw-on' : 'sw-off'}}"
+        bindtap="toggleAiEnabled"
+      >
+        <view class="sw-text-col">
+          <view class="sw-title">
+            {{aiEnabled ? '同时解析' : '仅录题'}}
+          </view>
+          <view class="sw-sub">
+            <block wx:if="{{quota && !quota.canAnalyze}}">
+              当前解析额度已用完，可继续录入保存
+            </block>
+            <block wx:elif="{{aiEnabled}}">
+              {{quota && quota.accessMode === 'trial' ? '将消耗 1 次额度（免费试用剩 ' + quota.trialRemaining + '/' + (quota.trialLimit || 3) + ' 次）' : (quota ? quota.statusText : '自动生成参考答案、解析与错因')}}
+            </block>
+            <block wx:else>
+              录题不扣次数
+            </block>
+          </view>
+        </view>
+        <liquid-switch checked="{{aiEnabled}}" reduceTransparency="{{reduceTransparency}}" passive="{{true}}" />
+      </view>
+
+      <button
+        class="primary-button {{aiEnabled ? '' : 'btn-free-green'}}"
+        bindtap="handleTextSubmit"
+      >
+        {{aiEnabled ? '解析题目' : '下一步'}}
+      </button>
+    </view>
+  </block>
+  </block>
+</view>

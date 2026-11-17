@@ -1,0 +1,29 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/login/login",
+    "pages/onboarding/onboarding",
+    "pages/capture/capture",
+    "pages/confirm/confirm",
+    "pages/list/list",
+    "pages/detail/detail",
+    "pages/practice/practice",
+    "pages/profile/profile",
+    "pages/pet/pet",
+    "pages/privacy/privacy"
+  ],
+  "window": {
+    "navigationBarTitleText": "错题本",
+    "navigationBarBackgroundColor": "#F3F6FD",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#F3F6FD",
+    "backgroundTextStyle": "dark"
+  },
+  "usingComponents": {
+    "island-toast": "/components/island-toast/island-toast",
+    "liquid-switch": "/components/liquid-switch/liquid-switch"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

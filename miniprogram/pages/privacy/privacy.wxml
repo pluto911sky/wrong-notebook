@@ -1,0 +1,39 @@
+<view class="page-shell {{reduceTransparency ? 'reduce-transparency' : ''}}">
+  <island-toast toast="{{islandToast}}" reduceTransparency="{{reduceTransparency}}" />
+
+  <view class="doc-card card">
+    <view class="doc-title">用户隐私保护指引</view>
+
+    <view class="doc-section">
+      <view class="sec-h">我们处理的信息</view>
+      <view class="sec-p">微信登录时，我们使用微信提供的用户标识 OpenID 来区分账号并同步错题、解析额度和伴学进度。</view>
+      <view class="sec-p">你主动拍摄、选取或输入的题图、题干、答案与笔记用于录入和复习错题。保存后的错题、附图和伴学进度储存在服务端。登录状态和部分资料也会缓存在当前设备。</view>
+    </view>
+
+    <view class="doc-section">
+      <view class="sec-h">信息何时发给服务提供商</view>
+      <view class="sec-p">小程序通过腾讯云开发处理和保存账号及学习记录。提交的文本或图片会交由微信内容安全接口审核，文本审核还会使用微信用户标识。</view>
+      <view class="sec-p">手机识题在设备上处理题图。选择云端识题时，所选题图会发给本服务配置的模型服务。请求解析时，相关题目文字和附图（如有）也会发送给该服务，以生成答案和解析。建议只保留题目区域，避开试卷上的姓名、班级和联系方式。</view>
+      <button wx:if="{{canOpenPlatformGuide}}" class="secondary-button" bindtap="openPlatformGuide">查看微信平台上的隐私指引</button>
+    </view>
+
+    <view class="doc-section">
+      <view class="sec-h">查询、更正和删除</view>
+      <view class="sec-p">你可以在错题本中查看记录、修改笔记和删除单条错题。若以前在该账号保存过模型密钥，可以在「账号与解析额度」中清除。</view>
+      <view class="sec-p">「退出当前账号」结束本机登录，云端账号和学习记录继续保留。可通过微信设置管理相机或相册权限，并选择手动输入题目。</view>
+      <view class="sec-p">小程序目前没有自助注销入口。如需查询、更正或删除个人信息，或想申请注销，请通过下方微信意见反馈提交请求。</view>
+      <button class="secondary-button" open-type="feedback">提交隐私反馈</button>
+    </view>
+
+    <view class="agree-bar" wx:if="{{platformAuthorization}}">
+      <button id="privacy-agree" class="primary-button" open-type="agreePrivacyAuthorization" bindagreeprivacyauthorization="agreeWithWeChat">同意并继续</button>
+      <button class="secondary-button" bindtap="goBack">暂不同意</button>
+    </view>
+    <view class="agree-bar" wx:elif="{{needConsent}}">
+      <button class="primary-button" bindtap="agreeAndBack">阅读并同意，返回继续</button>
+    </view>
+    <view class="agree-bar" wx:else>
+      <button class="secondary-button" bindtap="goBack">返回上一页</button>
+    </view>
+  </view>
+</view>

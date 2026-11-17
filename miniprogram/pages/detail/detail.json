@@ -1,0 +1,6 @@
+{
+  "usingComponents": {
+    "study-content": "/components/study-content/study-content"
+  },
+  "navigationBarTitleText": "错题详情"
+}

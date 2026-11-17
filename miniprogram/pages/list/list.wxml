@@ -1,0 +1,113 @@
+<view class="page-shell list-shell {{reduceTransparency ? 'reduce-transparency' : ''}}">
+  <island-toast toast="{{islandToast}}" reduceTransparency="{{reduceTransparency}}" />
+
+  <!-- 吸顶复合检索与筛选舱 -->
+  <view class="sticky-filter-panel">
+    <!-- 搜索框 -->
+    <view class="search-bar">
+      <text class="search-icon">🔍</text>
+      <input
+        class="search-input"
+        value="{{searchQuery}}"
+        placeholder="搜索题目或知识点"
+        confirm-type="search"
+        bindinput="onSearchInput"
+        bindconfirm="onSearchConfirm"
+      />
+      <text wx:if="{{searchQuery}}" class="clear-btn" bindtap="clearSearch">✕</text>
+      <text class="search-action" bindtap="onSearchConfirm">搜索</text>
+    </view>
+
+    <!-- 学科选择 + 攻克状态胶囊 -->
+    <view class="filter-controls-row">
+      <picker mode="selector" range="{{notebooks}}" range-key="name" value="{{notebookIndex}}" disabled="{{notebooks.length <= 1}}" bindchange="onNotebookChange">
+        <view class="subject-filter-pill">
+          <text class="subject-filter-name">{{notebooks[notebookIndex].name}}</text>
+          <text wx:if="{{viewState === 'ready' || viewState === 'loadingMore'}}" class="subject-filter-count">({{total}})</text>
+          <text wx:if="{{notebooks.length > 1}}" class="subject-filter-arrow">▾</text>
+        </view>
+      </picker>
+
+      <view class="mastery-seg">
+        <view
+          class="m-seg-item {{masteryFilter === 'all' ? 'm-seg-active' : ''}}"
+          data-filter="all"
+          bindtap="onMasteryFilterTap"
+        >全部</view>
+        <view
+          class="m-seg-item {{masteryFilter === '0' ? 'm-seg-active' : ''}}"
+          data-filter="0"
+          bindtap="onMasteryFilterTap"
+        >待攻克</view>
+        <view
+          class="m-seg-item {{masteryFilter === '1' ? 'm-seg-active' : ''}}"
+          data-filter="1"
+          bindtap="onMasteryFilterTap"
+        >✅ 已掌握</view>
+      </view>
+    </view>
+    <button wx:if="{{notebooksError}}" size="mini" class="notebook-retry" bindtap="loadNotebooks">{{notebooksError}}，点击重试</button>
+  </view>
+
+  <!-- 状态视图 -->
+  <view wx:if="{{viewState === 'loading'}}" class="card empty-state-card">
+    <view class="spinner"></view>
+    <text class="muted">正在加载错题列表…</text>
+  </view>
+
+  <view wx:elif="{{viewState === 'error'}}" class="card empty-state-card">
+    <text class="error-msg">{{errorMessage}}</text>
+    <button class="secondary-button" style="width: 240rpx; margin-top: 24rpx;" bindtap="retryLoad">重新加载</button>
+  </view>
+
+  <view wx:elif="{{items.length === 0}}" class="card empty-state-card">
+    <view class="empty-illust">🗂️</view>
+    <view class="empty-title">暂无错题</view>
+    <view class="empty-sub">试试其他筛选</view>
+  </view>
+
+  <!-- 错题卡片流 -->
+  <block wx:else>
+    <view class="mistake-feed">
+      <view
+        wx:for="{{items}}"
+        wx:key="id"
+        class="feed-card {{item.mastered ? 'border-mastered' : 'border-todo'}}"
+        data-id="{{item.id}}"
+        bindtap="goDetail"
+      >
+        <view class="feed-card-top">
+          <text class="feed-subject">{{item.subjectName}}</text>
+          <text class="feed-ai-tag {{item.hasAiAnalysis ? 'tag-analyzed' : 'tag-pending'}}">
+            {{item.hasAiAnalysis ? '已解析' : '未解析'}}
+          </text>
+          <text class="feed-status {{item.mastered ? 'st-mastered' : 'st-todo'}}">
+            {{item.mastered ? '已掌握' : '待攻克'}}
+          </text>
+        </view>
+
+        <view class="feed-question">{{item.brief}}</view>
+
+        <view class="feed-card-foot">
+          <text class="feed-date">收录于 {{item.createdText}}</text>
+          <text class="feed-enter">进入复习 / 解析 ›</text>
+        </view>
+      </view>
+    </view>
+
+    <view wx:if="{{page < totalPages}}" class="load-more-box">
+      <text wx:if="{{loadMoreError}}" class="load-more-error">{{loadMoreError}}</text>
+      <button class="secondary-button load-more-button" bindtap="loadMore" loading="{{viewState === 'loadingMore'}}" disabled="{{viewState === 'loadingMore'}}">
+        {{viewState === 'loadingMore' ? '正在加载更多…' : (loadMoreError ? '重试加载下一页' : '加载更多错题')}}
+      </button>
+    </view>
+    <view wx:else class="load-more-box">
+      <text class="load-more-end">— 已展示全部 {{total}} 道错题 —</text>
+    </view>
+  </block>
+
+  <!-- 底部固定快捷录题坞 -->
+  <view class="sticky-bottom-bar">
+    <button class="dock-btn dock-primary" bindtap="goCapture">录入错题</button>
+  </view>
+</view>

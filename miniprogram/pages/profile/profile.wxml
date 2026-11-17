@@ -1,0 +1,101 @@
+<view class="page-shell {{reduceTransparency ? 'reduce-transparency' : ''}}">
+  <island-toast toast="{{islandToast}}" reduceTransparency="{{reduceTransparency}}" />
+
+  <view class="card hero-card">
+    <view class="user-strip">
+      <text class="user-name">{{user.name || '我的账号'}}</text>
+      <text wx:if="{{quota}}" class="status-pill status-{{quota.accessMode}}">解析额度</text>
+    </view>
+
+    <view class="hero-headline">
+      <block wx:if="{{!quota}}">{{loading ? '正在查询额度…' : '暂未获取到额度'}}</block>
+      <block wx:elif="{{quota.accessMode === 'vip'}}">特权有效</block>
+      <block wx:elif="{{quota.accessMode === 'admin'}}">不限次解析</block>
+      <block wx:elif="{{quota.accessMode === 'custom_key'}}">使用账号已配置的模型</block>
+      <block wx:elif="{{quota.accessMode === 'exhausted'}}">免费解析次数已用完</block>
+      <block wx:else>剩余 {{quota.trialRemaining + quota.paidQuota}} 次解析</block>
+    </view>
+
+    <view wx:if="{{quota}}" class="quota-chip-row">
+      <text class="quota-chip">免费体验 {{quota.trialRemaining}} / {{quota.trialLimit}}</text>
+      <text wx:if="{{quota.paidQuota > 0}}" class="quota-chip">次卡 {{quota.paidQuota}} 次</text>
+    </view>
+
+    <view class="benefit-list">
+      <text class="benefit-item">录题和复习不扣次数。</text>
+    </view>
+  </view>
+
+  <view wx:if="{{user}}" class="card links-card name-card">
+    <view class="link-row" bindtap="editName">
+      <view class="pref-meta">
+        <text class="pref-label">学习台名字</text>
+        <text class="pref-desc">{{user.name || '未填写'}}的学习台</text>
+      </view>
+      <text class="link-right">{{savingName ? '保存中…' : '修改 ›'}}</text>
+    </view>
+  </view>
+
+  <view wx:if="{{cloudMode && user}}" class="card">
+    <button class="secondary-button" bindtap="enterCardCode" loading="{{redeeming}}" disabled="{{redeeming}}">兑换次卡</button>
+    <button wx:if="{{user.role === 'admin'}}" class="secondary-button" bindtap="issueCard">生成次卡</button>
+    <button wx:if="{{user.role === 'admin'}}" class="secondary-button" bindtap="revokeCard">作废次卡</button>
+  </view>
+
+  <view wx:if="{{quota.canClearLegacyKey}}" class="card legacy-key-card">
+    <text>以前保存的模型密钥</text>
+    <button class="unbind-btn" bindtap="handleClearApiKey">清除</button>
+  </view>
+
+  <view class="card links-card prefs-card">
+    <view class="prefs-header">
+      <text class="prefs-title">显示与触感</text>
+      <text class="prefs-badge">iOS Liquid Glass</text>
+    </view>
+    <view class="pref-row">
+      <view class="pref-meta">
+        <text class="pref-label">减少透明与模糊</text>
+        <text class="pref-desc">减少模糊效果</text>
+      </view>
+      <liquid-switch
+        checked="{{reduceTransparency}}"
+        reduceTransparency="{{reduceTransparency}}"
+        bind:change="onToggleReduceTransparency"
+      />
+    </view>
+    <view class="link-divider"></view>
+    <view class="pref-row">
+      <view class="pref-meta">
+        <text class="pref-label">触感震动反馈</text>
+        <text class="pref-desc">操作时轻震</text>
+      </view>
+      <liquid-switch
+        checked="{{hapticEnabled}}"
+        reduceTransparency="{{reduceTransparency}}"
+        bind:change="onToggleHaptic"
+      />
+    </view>
+  </view>
+
+  <view class="card links-card">
+    <view class="link-row" bindtap="openPetPage">
+      <text class="link-left">我的伴学宠物</text>
+      <text class="link-right">进入 ›</text>
+    </view>
+    <view class="link-divider"></view>
+    <view class="link-row" bindtap="openPrivacyDoc">
+      <text class="link-left">用户隐私保护指引</text>
+      <text class="link-right">查看 ›</text>
+    </view>
+    <view class="link-divider"></view>
+    <view class="link-row" bindtap="runHealthCheck">
+      <text class="link-left">运行环境自检</text>
+      <text class="link-right">{{healthChecking ? '检测中…' : '开始 ›'}}</text>
+    </view>
+  </view>
+
+  <view class="logout-wrap">
+    <button wx:if="{{cloudMode && user}}" class="reset-account" bindtap="confirmAccountReset" loading="{{resetting}}" disabled="{{resetting}}">重置账号</button>
+    <text wx:if="{{!resetting}}" class="logout-link" bindtap="handleLogout">退出当前账号</text>
+  </view>
+</view>

@@ -1,0 +1,139 @@
+.challenge {
+  box-sizing: border-box;
+  padding: 44rpx 32rpx calc(48rpx + env(safe-area-inset-bottom));
+}
+
+.step-track {
+  display: flex;
+  gap: 18rpx;
+  margin-bottom: 40rpx;
+}
+
+.step {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6rpx;
+  min-height: 122rpx;
+  border: 2rpx solid transparent;
+  border-radius: 20rpx;
+  background: #e9eef6;
+  color: #465770;
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.step-number {
+  font-size: 39rpx;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.step-similar { background: #e8efff; color: #2349a4; }
+.step-advanced { background: #f0e9ff; color: #624095; }
+.step-challenge { background: #fff0df; color: #854513; }
+
+.step-passed {
+  background: #dcf4e7;
+  color: #196745;
+}
+
+.step-current {
+  background: #254baf;
+  border-color: #254baf;
+  color: #fff;
+}
+
+.challenge-panel {
+  padding: 36rpx 32rpx;
+  border: 1rpx solid #dce4f1;
+  border-radius: 28rpx;
+  background: #fff;
+}
+
+.centered {
+  display: flex;
+  flex-direction: column;
+  gap: 18rpx;
+  text-align: center;
+}
+
+.question-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12rpx;
+}
+
+.question-title {
+  font-size: 35rpx;
+  font-weight: 700;
+  color: #192b49;
+}
+
+.reward {
+  color: #246546;
+  font-size: 28rpx;
+  font-weight: 600;
+}
+
+.question,
+.result-text {
+  color: #192b49;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.question {
+  margin-top: 28rpx;
+  font-size: 36rpx;
+  line-height: 1.7;
+}
+
+.answer-area {
+  margin-top: 32rpx;
+}
+
+.answer-field {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 104rpx;
+  padding: 24rpx;
+  border: 1rpx solid #dce4f1;
+  border-radius: 22rpx;
+  background: #fff;
+  font-size: 33rpx;
+}
+
+.answer-feedback,
+.result-text {
+  margin-top: 18rpx;
+  font-size: 30rpx;
+  line-height: 1.65;
+}
+
+.answer-feedback {
+  color: #9d331b;
+}
+
+.challenge-button {
+  width: 100%;
+  margin-top: 28rpx;
+}
+
+.quiet-button {
+  margin: 12rpx 0 0;
+  min-height: 72rpx;
+  color: #254baf;
+  background: transparent;
+  font-size: 30rpx;
+  padding: 0;
+}
+
+.quiet-button::after {
+  border: 0;
+}
