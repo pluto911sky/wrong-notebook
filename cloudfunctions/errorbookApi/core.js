@@ -6,7 +6,7 @@ const { inspectPlatformAIConfig } = require("./ai-client");
 const { preparePet, applyPetAction } = require("./pet-actions");
 
 const {
-  PRACTICE_STAGES, PRACTICE_EXP, completePractice, practiceQuestions, normalizePracticeAnswer, practiceAnswerMatches,
+  PRACTICE_STAGES, PRACTICE_EXP, completePractice, practiceQuestions, normalizePracticeAnswer, practiceAnswerMatches, setSquareAnswerMatches,
 } = require("./practice");
 
 const DEFAULT_AI_TRIAL_LIMIT = 100;
@@ -913,6 +913,7 @@ function createCore({ db, collections, files, security, ai, getIdentity }) {
         writes, userId, scope: pathname, requestId: body.requestId,
         solve: () => ai.reanswerQuestion({
           questionText, wrongAnswerText, subjectHint: typeof subject === "string" ? subject : "", imageBase64, mimeType,
+          transcribeHandwriting: Boolean(imageBase64 && body.transcribeHandwriting === true),
         }),
       });
     }
@@ -1107,7 +1108,8 @@ function createCore({ db, collections, files, security, ai, getIdentity }) {
           if (index > progress) return jsonResp(409, { message: "请先完成上一关" });
           const round = item.practice[body.stage];
           const alternate = Array.isArray(round.acceptedAnswers) ? round.acceptedAnswers : [];
-          const correct = [round.answerText, ...alternate].some((value) => practiceAnswerMatches(value, answer));
+          const correct = [round.answerText, ...alternate].some((value) => practiceAnswerMatches(value, answer)) ||
+            setSquareAnswerMatches(round.questionText, answer);
           if (!correct) return jsonResp(200, { correct: false, experience: 0 });
 
           const currentUser = await tx.readDoc(collections.users, userId);

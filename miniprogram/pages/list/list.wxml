@@ -78,12 +78,8 @@
       >
         <view class="feed-card-top">
           <text class="feed-subject">{{item.subjectName}}</text>
-          <text class="feed-ai-tag {{item.hasAiAnalysis ? 'tag-analyzed' : 'tag-pending'}}">
-            {{item.hasAiAnalysis ? '已解析' : '未解析'}}
-          </text>
-          <text class="feed-status {{item.mastered ? 'st-mastered' : 'st-todo'}}">
-            {{item.mastered ? '已掌握' : '待攻克'}}
-          </text>
+          <view class="feed-ai-tag {{item.hasAiAnalysis ? 'tag-analyzed' : 'tag-pending'}}">{{item.hasAiAnalysis ? '已解析' : '未解析'}}</view>
+          <view class="feed-status {{item.mastered ? 'st-mastered' : 'st-todo'}}">{{item.mastered ? '已掌握' : '待攻克'}}</view>
         </view>
 
         <view class="feed-question">{{item.brief}}</view>

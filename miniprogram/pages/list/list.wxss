@@ -189,9 +189,12 @@ button.notebook-retry {
 .feed-ai-tag {
   padding: 5rpx 15rpx;
   border-radius: 9rpx;
-  line-height: 1.25;
-  display: inline-flex;
+  min-height: 44rpx;
+  box-sizing: border-box;
+  line-height: 1;
+  display: flex;
   align-items: center;
+  justify-content: center;
   font-size: 25rpx;
   font-weight: 600;
 }
@@ -218,9 +221,12 @@ button.notebook-retry {
   margin-left: auto;
   padding: 4rpx 14rpx;
   border-radius: 9rpx;
-  line-height: 1.25;
-  display: inline-flex;
+  min-height: 44rpx;
+  box-sizing: border-box;
+  line-height: 1;
+  display: flex;
   align-items: center;
+  justify-content: center;
   font-size: 23rpx;
   font-weight: 700;
 }

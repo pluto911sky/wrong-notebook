@@ -652,13 +652,15 @@ function createAIService(env = process.env, { requestImpl = requestJson, tencent
       };
     },
 
-    async reanswerQuestion({ questionText, wrongAnswerText, subjectHint, imageBase64, mimeType, user, override }) {
+    async reanswerQuestion({ questionText, wrongAnswerText, subjectHint, imageBase64, mimeType, user, override, transcribeHandwriting = false }) {
       const cfg = resolveConfiguredTask(user, override, env, "solve");
       const wrongAttempt = answerField(wrongAnswerText);
+      const readHandwriting = Boolean(imageBase64 && transcribeHandwriting);
       const systemPrompt =
         "你是经验丰富的中小学错题辅导老师。请针对题目给出标准答案和详细分步解析。" +
         SOLUTION_FORMAT_PROMPT +
-        (imageBase64 ? "以用户校对的题干为准，结合原图中的印刷体、配图和表格求解。忽略图中的手写答案和批阅。" : "") +
+        (imageBase64 ? "以用户校对的题干为准，结合原图中的印刷体、配图和表格独立求解。求解时不要参考图中的手写答案和批阅。" : "") +
+        (readHandwriting ? "额外转录本题清晰可见的学生手写答案或算式到 handwrittenAnswer 字段。仅照抄，不纠正错误、不补写，不抄教师的批阅或订正；无法区分或看不清时返回空字符串。手写转录与参考答案字段分开。" : "") +
         (wrongAttempt
           ? "结合给出的学生错解找出可验证的错因。如果信息不足，请说明不确定性，切勿编造作答过程。"
           : "只给出这道题的常见易错提示，切勿推定学生做错的步骤。") +
@@ -668,7 +670,9 @@ function createAIService(env = process.env, { requestImpl = requestJson, tencent
       const userPrompt = `${subjectHint ? `学科：${subjectHint}\n` : ""}题目：\n${questionText}${wrongAttemptPrompt}\n\n请只返回 JSON。`;
       const raw = await callModel(cfg, { systemPrompt, userPrompt, imageBase64, mimeType, task: "solve", requestImpl });
       const parsed = parseTaskResult(raw, "solve", ["answerText", "analysis"]);
-      return formatSolution(parsed, wrongAttempt);
+      return { ...formatSolution(parsed, wrongAttempt),
+        ...(readHandwriting ? { handwrittenAnswer: answerField(parsed.handwrittenAnswer).slice(0, 2000) } : {}),
+      };
     },
 
     async generatePractice({ questionText, subjectHint, knowledgePoints }) {
@@ -679,7 +683,7 @@ function createAIService(env = process.env, { requestImpl = requestJson, tencent
         "advanced 在同类题上增加一个有意义的条件或推理步骤，允许学生继续使用原方法；不要只换大数字。" +
         "challenge 是压轴题，在进阶题基础上再增加一次有意义的推理或条件组合。不得跨学段或换核心知识点。" +
         "新题必须完整自足，不引用原图、原表或未提供的材料。题干不泄露答案。" +
-        "每关使用有唯一可自动判定答案的简答题或单选题，在题干写明答案格式与单位。answerText 只写最终答案。" +
+        "每关只允许单选题或唯一的短数值答案，禁止要求描述步骤、解释理由、证明或写开放性段落。题干写明答案格式与单位，answerText 只写选项字母或最终数值。" +
         "acceptedAnswers 只列含义完全等价的常见写法（如题目问 x 的值时，x=5 和 5）；不列不完整或模糊答案。" +
         "分别独立解题、验算，核对答案和解析一致。原题信息不足以可靠出题时将字段留空。" +
         '只返回 JSON，必须包含 similar、advanced、challenge 三个对象。每个对象格式为 {"questionText":"","answerText":"","acceptedAnswers":[],"analysis":""}。';

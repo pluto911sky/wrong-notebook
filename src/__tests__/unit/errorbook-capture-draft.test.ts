@@ -182,6 +182,18 @@ describe("云函数模型响应校验", () => {
         await expect(wrongType.service.reanswerQuestion({ questionText: "1+1" })).rejects.toThrow(/解析/);
     });
 
+    it("按需转录手写答案，并与参考答案分开返回", async () => {
+        const { service, requestImpl } = createMockService(
+            '{"answerText":"30600 千克","analysis":"850 × 36","handwrittenAnswer":"850×36=3060"}',
+        );
+        const input = { questionText: "每吨产850千克，36吨产多少？", imageBase64: "AAAA" };
+        const result = await service.reanswerQuestion({ ...input, transcribeHandwriting: true });
+        expect(result).toMatchObject({ answerText: "30600 千克", handwrittenAnswer: "850×36=3060" });
+        expect(requestImpl.mock.calls[0][1].body.messages[0].content).toContain("不纠正错误");
+        const withoutOptIn = await service.reanswerQuestion(input);
+        expect(withoutOptIn).not.toHaveProperty("handwrittenAnswer");
+    });
+
     it("将学生错解传给模型，并对缺少错解的结果标明通用提示", async () => {
         const { service, requestImpl } = createMockService('{"answerText":"2","analysis":"直接相加","mistakeAnalysis":"记错加法规则"}');
         const result = await service.reanswerQuestion({ questionText: "1+1", wrongAnswerText: "我算成3" });

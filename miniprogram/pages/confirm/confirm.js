@@ -9,6 +9,8 @@ Page({
         imagePath: '',
         questionText: '',
         wrongAnswerText: '',
+        handwrittenAnswer: '',
+        handwritingChecked: false,
         answerText: '',
         analysis: '',
         mistakeAnalysis: '',
@@ -185,7 +187,8 @@ Page({
             return;
         }
 
-        const signature = [questionText, wrongAnswerText, subject && subject.id, imagePath, mimeType];
+        const transcribeHandwriting = Boolean(questionText && imagePath && api.isCloudMode());
+        const signature = [questionText, wrongAnswerText, subject && subject.id, imagePath, mimeType, transcribeHandwriting];
         const attempt = drafts.analysisAttempt(previous, signature);
         if (quota && !quota.canAnalyze && attempt !== previous) {
             api.showQuotaExhaustedModal();
@@ -197,7 +200,7 @@ Page({
         try {
             const imageBase64 = await drafts.readImageBase64(imagePath);
             if (!this.isCurrent()) return;
-            const payload = { imageBase64: imageBase64 || undefined, mimeType, wrongAnswerText, requestId: attempt.requestId, language: 'zh' };
+            const payload = { imageBase64: imageBase64 || undefined, mimeType, wrongAnswerText, requestId: attempt.requestId, transcribeHandwriting, language: 'zh' };
             const res = questionText
                 ? await api.analyzeText({ ...payload, questionText, subject: subject ? subject.name : '数学' })
                 : await api.analyzeImage({ ...payload, subjectId: subject && subject.id });
@@ -216,6 +219,9 @@ Page({
             const result = {
                 ...this.draft.result,
                 analyzed: true,
+                ...(typeof res.handwrittenAnswer === 'string'
+                    ? { handwrittenAnswer: res.handwrittenAnswer, handwritingChecked: true }
+                    : {}),
                 questionText: this.data.questionText || res.questionText || '',
                 answerText: this.draft.editedFields.answerText ? this.data.answerText : res.answerText,
                 analysis: this.draft.editedFields.analysis ? this.data.analysis : res.analysis,
@@ -325,7 +331,7 @@ Page({
                 viewState: 'ready',
                 savePending: pending,
                 imagePath: lostImage ? '' : imagePath,
-                errorMessage: pending ? '暂未确认保存，重试不会重复录入' : (error?.message || '保存失败，请重试'),
+                errorMessage: pending ? (error?.message ? '暂未确认保存：' + error.message : '暂未确认保存，重试不会重复录入') : (error?.message || '保存失败，请重试'),
             });
             return;
         }

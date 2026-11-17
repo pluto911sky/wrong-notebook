@@ -65,6 +65,8 @@ function sanitizeDraft(stage, value) {
             subject: asText(result.subject),
             questionText: asText(result.questionText),
             wrongAnswerText: asText(result.wrongAnswerText),
+            handwrittenAnswer: asText(result.handwrittenAnswer).slice(0, 2000),
+            handwritingChecked: result.handwritingChecked === true,
             answerText: asText(result.answerText),
             analysis: asText(result.analysis),
             mistakeAnalysis: asText(result.mistakeAnalysis),

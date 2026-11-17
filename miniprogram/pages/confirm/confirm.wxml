@@ -75,6 +75,12 @@
         />
       </view>
 
+      <view wx:if="{{handwritingChecked}}" class="field-block" style="margin-top: 24rpx;">
+        <view class="field-label">原图手写作答</view>
+        <text wx:if="{{handwrittenAnswer}}" selectable>{{handwrittenAnswer}}</text>
+        <text wx:else class="muted">未辨认出清晰的手写作答，请对照原图。</text>
+      </view>
+
       <view wx:if="{{knowledgePoints.length > 0}}" class="field-block" style="margin-top: 24rpx;">
         <text class="field-label">🏷️ 识别到的考点标签</text>
         <view class="tag-list">
@@ -93,7 +99,7 @@
         也可直接保存。
       </view>
       <button class="ai-trigger-btn" loading="{{analyzingNow}}" disabled="{{analyzingNow || viewState !== 'ready'}}" bindtap="runAiAnalyzeNow">
-        开始解析
+        {{imagePath && questionText ? '解析并识别手写' : '开始解析'}}
       </button>
     </view>
 

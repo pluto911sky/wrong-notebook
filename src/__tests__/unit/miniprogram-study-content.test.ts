@@ -21,3 +21,13 @@ describe('小程序内容和练习答案格式', () => {
         expect(practiceAnswerMatches('1/2', '1/0')).toBe(false);
     });
 });
+
+it('接受用两把三角尺相减的等价描述，拒绝只写结果或用了没有的角', () => {
+    const { setSquareAnswerMatches } = require('../../../cloudfunctions/errorbookApi/practice');
+    const question = '用一副三角尺画一个15°的角，可以怎样操作？请描述画法。';
+    expect(setSquareAnswerMatches(question, '用等腰直角三角形的 45 度角减去普通直角三角形的 30 度角。这样就可以得到 15 度的角。')).toBe(true);
+    expect(setSquareAnswerMatches(question, '15°')).toBe(false);
+    expect(setSquareAnswerMatches(question, '45°加30°')).toBe(false);
+    expect(setSquareAnswerMatches(question, '50°减35°')).toBe(false);
+    expect(setSquareAnswerMatches('计算 15° 的角度', '45°减30°')).toBe(false);
+});

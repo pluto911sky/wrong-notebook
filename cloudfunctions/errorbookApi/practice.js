@@ -47,4 +47,24 @@ function practiceAnswerMatches(expected, answer) {
   return Boolean(left && right && left[0] * right[1] === right[0] * left[1]);
 }
 
-module.exports = { PRACTICE_STAGES, PRACTICE_EXP, completePractice, practiceQuestions, normalizePracticeAnswer, practiceAnswerMatches };
+function setSquareAnswerMatches(question, answer) {
+  const prompt = normalizePracticeAnswer(question);
+  if (!/用(?:一副|两把|一对)三角尺/.test(prompt) || !/[画拼][^，。？?]{0,20}(?:°|度)的角/.test(prompt)) return false;
+  const target = prompt.match(/[画拼][^，。？?\d]{0,16}(\d{1,3})\s*(?:°|度)的角/);
+  if (!target) return false;
+  const angles = /(\d{1,3})\s*(?:°|度)(?:的)?(?:角)?\s*(减去|减|[-]|加上|加|[+])\s*[^\d，。；！？=+-]{0,24}?(\d{1,3})\s*(?:°|度)(?:的)?(?:角)?(?!\d)/g;
+  const response = normalizePracticeAnswer(answer);
+  const matches = [...response.matchAll(angles)];
+  if (matches.length !== 1 || /不能|不可以|不等于|不正确|不要/.test(response)) return false;
+  const [, first, operator, second] = matches[0];
+  const a = Number(first);
+  const b = Number(second);
+  const crossPair = ([45, 90].includes(a) && [30, 60, 90].includes(b)) ||
+    ([45, 90].includes(b) && [30, 60, 90].includes(a));
+  if (!crossPair) return false;
+  const result = /^(减|[-])/.test(operator) ? a - b : a + b;
+  const asserted = response.match(/(?:=|得到|等于)\s*(\d{1,3})\s*(?:°|度)/);
+  return result === Number(target[1]) && (!asserted || Number(asserted[1]) === result);
+}
+
+module.exports = { PRACTICE_STAGES, PRACTICE_EXP, completePractice, practiceQuestions, normalizePracticeAnswer, practiceAnswerMatches, setSquareAnswerMatches };
